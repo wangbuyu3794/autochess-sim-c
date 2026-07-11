@@ -9,6 +9,7 @@ typedef struct
     const char *name;
     int base_hp;
     int base_attack;
+    int attack_range;
 } HeroTemplate;
 
 const HeroTemplate *hero_get_template(int template_id);

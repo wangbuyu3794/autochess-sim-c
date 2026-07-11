@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "config.h"
+#include "board.h"
 #include "hero.h"
 
 typedef enum
@@ -29,6 +30,8 @@ typedef struct
     int max_hp;
     int current_hp;
     int attack;
+    int attack_range;
+    BoardPosition position;
     int is_alive;
 } BattleUnit;
 
@@ -40,9 +43,13 @@ typedef struct
 } BattleContext;
 
 BattleUnit battle_create_unit(int instance_id, const HeroTemplate *hero, BattleSide side);
+BattleUnit battle_create_unit_at(int instance_id, const HeroTemplate *hero, BattleSide side, BoardPosition position);
 void battle_add_unit(BattleContext *context, BattleUnit unit);
 void battle_apply_damage(BattleUnit *target, int damage);
-int battle_select_target_lowest_hp(const BattleContext *context, BattleSide attacker_side);
+int battle_select_target_nearest(const BattleContext *context, int attacker_index);
+int battle_is_position_occupied(const BattleContext *context, BoardPosition position);
+int battle_is_target_in_range(const BattleUnit *attacker, const BattleUnit *target);
+int battle_try_move_toward(BattleContext *context, int mover_index, BoardPosition target_position);
 BattleResult battle_check_result(const BattleContext *context);
 BattleResult battle_run(BattleContext *context, FILE *log_stream);
 BattleContext battle_create_demo_context(void);

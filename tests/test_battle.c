@@ -55,9 +55,12 @@ static void test_damage_clamps_hp_and_kills_unit(void)
 static void test_selects_lowest_hp_target(void)
 {
     BattleContext context = make_empty_context();
-    BattleUnit attacker = battle_create_unit(1, hero_get_template(1), BATTLE_SIDE_PLAYER);
-    BattleUnit enemy_a = battle_create_unit(101, hero_get_template(4), BATTLE_SIDE_ENEMY);
-    BattleUnit enemy_b = battle_create_unit(102, hero_get_template(5), BATTLE_SIDE_ENEMY);
+    BoardPosition attacker_position = {7, 3};
+    BoardPosition enemy_a_position = {5, 3};
+    BoardPosition enemy_b_position = {6, 2};
+    BattleUnit attacker = battle_create_unit_at(1, hero_get_template(1), BATTLE_SIDE_PLAYER, attacker_position);
+    BattleUnit enemy_a = battle_create_unit_at(101, hero_get_template(4), BATTLE_SIDE_ENEMY, enemy_a_position);
+    BattleUnit enemy_b = battle_create_unit_at(102, hero_get_template(5), BATTLE_SIDE_ENEMY, enemy_b_position);
 
     enemy_a.current_hp = 40;
     enemy_b.current_hp = 20;
@@ -66,15 +69,18 @@ static void test_selects_lowest_hp_target(void)
     battle_add_unit(&context, enemy_a);
     battle_add_unit(&context, enemy_b);
 
-    EXPECT_EQ(2, battle_select_target_lowest_hp(&context, BATTLE_SIDE_PLAYER));
+    EXPECT_EQ(2, battle_select_target_nearest(&context, 0));
 }
 
 static void test_selects_smaller_instance_id_when_hp_ties(void)
 {
     BattleContext context = make_empty_context();
-    BattleUnit attacker = battle_create_unit(1, hero_get_template(1), BATTLE_SIDE_PLAYER);
-    BattleUnit enemy_a = battle_create_unit(103, hero_get_template(4), BATTLE_SIDE_ENEMY);
-    BattleUnit enemy_b = battle_create_unit(102, hero_get_template(5), BATTLE_SIDE_ENEMY);
+    BoardPosition attacker_position = {7, 3};
+    BoardPosition enemy_a_position = {5, 3};
+    BoardPosition enemy_b_position = {6, 2};
+    BattleUnit attacker = battle_create_unit_at(1, hero_get_template(1), BATTLE_SIDE_PLAYER, attacker_position);
+    BattleUnit enemy_a = battle_create_unit_at(103, hero_get_template(4), BATTLE_SIDE_ENEMY, enemy_a_position);
+    BattleUnit enemy_b = battle_create_unit_at(102, hero_get_template(5), BATTLE_SIDE_ENEMY, enemy_b_position);
 
     enemy_a.current_hp = 20;
     enemy_b.current_hp = 20;
@@ -83,7 +89,72 @@ static void test_selects_smaller_instance_id_when_hp_ties(void)
     battle_add_unit(&context, enemy_a);
     battle_add_unit(&context, enemy_b);
 
-    EXPECT_EQ(2, battle_select_target_lowest_hp(&context, BATTLE_SIDE_PLAYER));
+    EXPECT_EQ(2, battle_select_target_nearest(&context, 0));
+}
+
+static void test_selects_nearest_target_before_lowest_hp(void)
+{
+    BattleContext context = make_empty_context();
+    BoardPosition attacker_position = {7, 3};
+    BoardPosition near_position = {6, 3};
+    BoardPosition far_position = {0, 3};
+    BattleUnit attacker = battle_create_unit_at(1, hero_get_template(1), BATTLE_SIDE_PLAYER, attacker_position);
+    BattleUnit near_enemy = battle_create_unit_at(101, hero_get_template(4), BATTLE_SIDE_ENEMY, near_position);
+    BattleUnit far_enemy = battle_create_unit_at(102, hero_get_template(5), BATTLE_SIDE_ENEMY, far_position);
+
+    near_enemy.current_hp = 90;
+    far_enemy.current_hp = 1;
+
+    battle_add_unit(&context, attacker);
+    battle_add_unit(&context, near_enemy);
+    battle_add_unit(&context, far_enemy);
+
+    EXPECT_EQ(1, battle_select_target_nearest(&context, 0));
+}
+
+static void test_range_check_uses_manhattan_distance(void)
+{
+    BoardPosition attacker_position = {7, 3};
+    BoardPosition target_position = {5, 3};
+    BattleUnit attacker = battle_create_unit_at(1, hero_get_template(3), BATTLE_SIDE_PLAYER, attacker_position);
+    BattleUnit target = battle_create_unit_at(101, hero_get_template(4), BATTLE_SIDE_ENEMY, target_position);
+
+    EXPECT_TRUE(battle_is_target_in_range(&attacker, &target));
+}
+
+static void test_unit_moves_toward_target(void)
+{
+    BattleContext context = make_empty_context();
+    BoardPosition start = {7, 3};
+    BoardPosition target_position = {4, 3};
+    BattleUnit mover = battle_create_unit_at(1, hero_get_template(1), BATTLE_SIDE_PLAYER, start);
+    BattleUnit enemy = battle_create_unit_at(101, hero_get_template(4), BATTLE_SIDE_ENEMY, target_position);
+
+    battle_add_unit(&context, mover);
+    battle_add_unit(&context, enemy);
+
+    EXPECT_TRUE(battle_try_move_toward(&context, 0, target_position));
+    EXPECT_EQ(6, context.units[0].position.row);
+    EXPECT_EQ(3, context.units[0].position.col);
+}
+
+static void test_unit_does_not_move_into_occupied_cell(void)
+{
+    BattleContext context = make_empty_context();
+    BoardPosition start = {7, 3};
+    BoardPosition blocker_position = {6, 3};
+    BoardPosition target_position = {4, 3};
+    BattleUnit mover = battle_create_unit_at(1, hero_get_template(1), BATTLE_SIDE_PLAYER, start);
+    BattleUnit blocker = battle_create_unit_at(2, hero_get_template(2), BATTLE_SIDE_PLAYER, blocker_position);
+    BattleUnit enemy = battle_create_unit_at(101, hero_get_template(4), BATTLE_SIDE_ENEMY, target_position);
+
+    battle_add_unit(&context, mover);
+    battle_add_unit(&context, blocker);
+    battle_add_unit(&context, enemy);
+
+    EXPECT_TRUE(!battle_try_move_toward(&context, 0, target_position));
+    EXPECT_EQ(7, context.units[0].position.row);
+    EXPECT_EQ(3, context.units[0].position.col);
 }
 
 static void test_battle_result_when_one_side_is_defeated(void)
@@ -118,6 +189,10 @@ int main(void)
     test_damage_clamps_hp_and_kills_unit();
     test_selects_lowest_hp_target();
     test_selects_smaller_instance_id_when_hp_ties();
+    test_selects_nearest_target_before_lowest_hp();
+    test_range_check_uses_manhattan_distance();
+    test_unit_moves_toward_target();
+    test_unit_does_not_move_into_occupied_cell();
     test_battle_result_when_one_side_is_defeated();
     test_demo_battle_finishes();
 

@@ -6,6 +6,12 @@
 
 BattleUnit battle_create_unit(int instance_id, const HeroTemplate *hero, BattleSide side)
 {
+    BoardPosition default_position = {0, 0};
+    return battle_create_unit_at(instance_id, hero, side, default_position);
+}
+
+BattleUnit battle_create_unit_at(int instance_id, const HeroTemplate *hero, BattleSide side, BoardPosition position)
+{
     BattleUnit unit;
 
     unit.instance_id = instance_id;
@@ -15,6 +21,8 @@ BattleUnit battle_create_unit(int instance_id, const HeroTemplate *hero, BattleS
     unit.max_hp = hero != NULL ? hero->base_hp : 1;
     unit.current_hp = unit.max_hp;
     unit.attack = hero != NULL ? hero->base_attack : 1;
+    unit.attack_range = hero != NULL ? hero->attack_range : 1;
+    unit.position = position;
     unit.is_alive = 1;
 
     return unit;
@@ -57,20 +65,69 @@ void battle_apply_damage(BattleUnit *target, int damage)
     }
 }
 
-int battle_select_target_lowest_hp(const BattleContext *context, BattleSide attacker_side)
+static int try_step(BattleContext *context, int mover_index, BoardPosition next_position)
+{
+    if (context == NULL || mover_index < 0 || mover_index >= context->unit_count)
+    {
+        return 0;
+    }
+
+    if (!board_is_position_valid(next_position) ||
+        battle_is_position_occupied(context, next_position))
+    {
+        return 0;
+    }
+
+    context->units[mover_index].position = next_position;
+    return 1;
+}
+
+int battle_is_position_occupied(const BattleContext *context, BoardPosition position)
+{
+    if (context == NULL)
+    {
+        return 0;
+    }
+
+    for (int i = 0; i < context->unit_count; ++i)
+    {
+        const BattleUnit *unit = &context->units[i];
+
+        if (unit->is_alive && board_positions_equal(unit->position, position))
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int battle_is_target_in_range(const BattleUnit *attacker, const BattleUnit *target)
+{
+    if (attacker == NULL || target == NULL)
+    {
+        return 0;
+    }
+
+    return board_manhattan_distance(attacker->position, target->position) <= attacker->attack_range;
+}
+
+int battle_select_target_nearest(const BattleContext *context, int attacker_index)
 {
     int best_index = -1;
 
-    if (context == NULL)
+    if (context == NULL || attacker_index < 0 || attacker_index >= context->unit_count)
     {
         return best_index;
     }
+
+    const BattleUnit *attacker = &context->units[attacker_index];
 
     for (int i = 0; i < context->unit_count; ++i)
     {
         const BattleUnit *candidate = &context->units[i];
 
-        if (candidate->side == attacker_side || candidate->is_alive == 0)
+        if (candidate->side == attacker->side || candidate->is_alive == 0)
         {
             continue;
         }
@@ -82,9 +139,13 @@ int battle_select_target_lowest_hp(const BattleContext *context, BattleSide atta
         }
 
         const BattleUnit *best = &context->units[best_index];
+        int candidate_distance = board_manhattan_distance(attacker->position, candidate->position);
+        int best_distance = board_manhattan_distance(attacker->position, best->position);
 
-        if (candidate->current_hp < best->current_hp ||
-            (candidate->current_hp == best->current_hp &&
+        if (candidate_distance < best_distance ||
+            (candidate_distance == best_distance && candidate->current_hp < best->current_hp) ||
+            (candidate_distance == best_distance &&
+             candidate->current_hp == best->current_hp &&
              candidate->instance_id < best->instance_id))
         {
             best_index = i;
@@ -92,6 +153,39 @@ int battle_select_target_lowest_hp(const BattleContext *context, BattleSide atta
     }
 
     return best_index;
+}
+
+int battle_try_move_toward(BattleContext *context, int mover_index, BoardPosition target_position)
+{
+    if (context == NULL || mover_index < 0 || mover_index >= context->unit_count)
+    {
+        return 0;
+    }
+
+    BattleUnit *mover = &context->units[mover_index];
+    BoardPosition current = mover->position;
+    BoardPosition next = current;
+
+    if (target_position.col != current.col)
+    {
+        next.col += target_position.col > current.col ? 1 : -1;
+        if (try_step(context, mover_index, next))
+        {
+            return 1;
+        }
+    }
+
+    next = current;
+    if (target_position.row != current.row)
+    {
+        next.row += target_position.row > current.row ? 1 : -1;
+        if (try_step(context, mover_index, next))
+        {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 BattleResult battle_check_result(const BattleContext *context)
@@ -166,7 +260,7 @@ BattleResult battle_run(BattleContext *context, FILE *log_stream)
                 continue;
             }
 
-            int target_index = battle_select_target_lowest_hp(context, attacker->side);
+            int target_index = battle_select_target_nearest(context, i);
 
             if (target_index < 0)
             {
@@ -174,6 +268,28 @@ BattleResult battle_run(BattleContext *context, FILE *log_stream)
             }
 
             BattleUnit *target = &context->units[target_index];
+            if (!battle_is_target_in_range(attacker, target))
+            {
+                BoardPosition old_position = attacker->position;
+                int moved = battle_try_move_toward(context, i, target->position);
+
+                if (moved)
+                {
+                    logger_move(log_stream,
+                                attacker->name,
+                                old_position.row,
+                                old_position.col,
+                                attacker->position.row,
+                                attacker->position.col);
+                }
+                else
+                {
+                    logger_wait(log_stream, attacker->name);
+                }
+
+                continue;
+            }
+
             battle_apply_damage(target, attacker->attack);
             logger_attack(log_stream, attacker->name, target->name, attacker->attack, target->current_hp, target->max_hp);
 
@@ -206,13 +322,20 @@ BattleContext battle_create_demo_context(void)
 {
     BattleContext context = {0};
 
-    battle_add_unit(&context, battle_create_unit(1, hero_get_template(1), BATTLE_SIDE_PLAYER));
-    battle_add_unit(&context, battle_create_unit(2, hero_get_template(2), BATTLE_SIDE_PLAYER));
-    battle_add_unit(&context, battle_create_unit(3, hero_get_template(3), BATTLE_SIDE_PLAYER));
+    BoardPosition player_front = {6, 3};
+    BoardPosition player_left = {7, 2};
+    BoardPosition player_back = {7, 4};
+    BoardPosition enemy_front = {1, 3};
+    BoardPosition enemy_left = {0, 2};
+    BoardPosition enemy_back = {0, 4};
 
-    battle_add_unit(&context, battle_create_unit(101, hero_get_template(4), BATTLE_SIDE_ENEMY));
-    battle_add_unit(&context, battle_create_unit(102, hero_get_template(5), BATTLE_SIDE_ENEMY));
-    battle_add_unit(&context, battle_create_unit(103, hero_get_template(6), BATTLE_SIDE_ENEMY));
+    battle_add_unit(&context, battle_create_unit_at(1, hero_get_template(1), BATTLE_SIDE_PLAYER, player_front));
+    battle_add_unit(&context, battle_create_unit_at(2, hero_get_template(2), BATTLE_SIDE_PLAYER, player_left));
+    battle_add_unit(&context, battle_create_unit_at(3, hero_get_template(3), BATTLE_SIDE_PLAYER, player_back));
+
+    battle_add_unit(&context, battle_create_unit_at(101, hero_get_template(4), BATTLE_SIDE_ENEMY, enemy_front));
+    battle_add_unit(&context, battle_create_unit_at(102, hero_get_template(5), BATTLE_SIDE_ENEMY, enemy_left));
+    battle_add_unit(&context, battle_create_unit_at(103, hero_get_template(6), BATTLE_SIDE_ENEMY, enemy_back));
 
     return context;
 }

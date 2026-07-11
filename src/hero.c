@@ -11,12 +11,12 @@ enum
 };
 
 static const HeroTemplate HERO_TEMPLATES[] = {
-    {HERO_IRON_GUARD, "铁卫", 130, 16},
-    {HERO_BLADE_RUNNER, "斩锋", 105, 24},
-    {HERO_FOREST_ARCHER, "林弓", 90, 28},
-    {HERO_FIRE_SPARK, "火苗", 80, 30},
-    {HERO_SHADOW_BLADE, "影刃", 95, 27},
-    {HERO_ROCK_ARMOR, "岩甲", 140, 15},
+    {HERO_IRON_GUARD, "铁卫", 130, 16, 1},
+    {HERO_BLADE_RUNNER, "斩锋", 105, 24, 1},
+    {HERO_FOREST_ARCHER, "林弓", 90, 28, 3},
+    {HERO_FIRE_SPARK, "火苗", 80, 30, 3},
+    {HERO_SHADOW_BLADE, "影刃", 95, 27, 1},
+    {HERO_ROCK_ARMOR, "岩甲", 140, 15, 1},
 };
 
 const HeroTemplate *hero_get_template(int template_id)
