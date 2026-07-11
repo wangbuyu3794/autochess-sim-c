@@ -1,0 +1,28 @@
+# Build output
+build/
+cmake-build-*/
+out/
+
+# Compiled files
+*.exe
+*.obj
+*.o
+*.a
+*.lib
+*.dll
+*.so
+*.dylib
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Runtime data
+saves/
+logs/
+
+# OS files
+Thumbs.db
+.DS_Store
