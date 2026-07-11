@@ -13,7 +13,7 @@
 
 ## 当前阶段
 
-当前处于项目设计阶段，暂不实现游戏代码。
+当前处于 `V0.1 Battle Simulator` 阶段。
 
 第一批文档用于确定项目边界、版本路线和协作规则：
 
@@ -24,7 +24,7 @@
 
 ## 近期目标
 
-下一阶段是 `V0.1 Battle Simulator`：
+`V0.1 Battle Simulator` 的目标：
 
 - 创建基础 CMake 工程；
 - 定义英雄和战斗单位结构；
@@ -32,6 +32,30 @@
 - 实现普通攻击、目标选择、死亡判断和胜负判断；
 - 输出中文战斗日志；
 - 添加基础测试。
+
+## 构建和运行
+
+```bash
+cmake -S . -B build
+cmake --build build
+ctest --test-dir build
+./build/autochess
+```
+
+在 Windows PowerShell + MinGW 中，可以使用：
+
+```powershell
+cmake -S . -B build-mingw -G "MinGW Makefiles"
+cmake --build build-mingw
+ctest --test-dir build-mingw
+.\build-mingw\autochess.exe
+```
+
+在 Visual Studio 生成器中，最后一步通常是：
+
+```powershell
+.\build\Debug\autochess.exe
+```
 
 ## 项目边界
 
