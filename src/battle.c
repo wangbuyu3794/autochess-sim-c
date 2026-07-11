@@ -3,6 +3,7 @@
 #include <stddef.h>
 
 #include "logger.h"
+#include "trait.h"
 
 BattleUnit battle_create_unit(int instance_id, const HeroTemplate *hero, BattleSide side)
 {
@@ -42,6 +43,8 @@ BattleUnit battle_create_unit_at_star(int instance_id, const HeroTemplate *hero,
     unit.attack_range = hero != NULL ? hero->attack_range : 1;
     unit.position = position;
     unit.is_alive = 1;
+    unit.class_trait = hero != NULL ? hero->class_trait : TRAIT_NONE;
+    unit.origin_trait = hero != NULL ? hero->origin_trait : TRAIT_NONE;
 
     return unit;
 }
@@ -60,6 +63,48 @@ void battle_add_unit(BattleContext *context, BattleUnit unit)
 
     context->units[context->unit_count] = unit;
     context->unit_count += 1;
+}
+
+void battle_apply_trait_summary(BattleContext *context)
+{
+    TraitSummary player_summary;
+    TraitSummary enemy_summary;
+
+    if (context == NULL)
+    {
+        return;
+    }
+
+    trait_summary_init(&player_summary);
+    trait_summary_init(&enemy_summary);
+
+    for (int i = 0; i < context->unit_count; ++i)
+    {
+        const BattleUnit *unit = &context->units[i];
+        TraitSummary *summary = unit->side == BATTLE_SIDE_PLAYER ? &player_summary : &enemy_summary;
+
+        trait_summary_add(summary, unit->class_trait);
+        trait_summary_add(summary, unit->origin_trait);
+    }
+
+    for (int i = 0; i < context->unit_count; ++i)
+    {
+        BattleUnit *unit = &context->units[i];
+        const TraitSummary *summary = unit->side == BATTLE_SIDE_PLAYER ? &player_summary : &enemy_summary;
+        int guardian_hp = trait_guardian_bonus_hp(summary);
+        int blademaster_attack_percent = trait_blademaster_attack_percent(summary);
+
+        if (unit->class_trait == TRAIT_GUARDIAN && guardian_hp > 0)
+        {
+            unit->max_hp += guardian_hp;
+            unit->current_hp += guardian_hp;
+        }
+
+        if (unit->class_trait == TRAIT_BLADEMASTER && blademaster_attack_percent > 0)
+        {
+            unit->attack += (unit->attack * blademaster_attack_percent) / 100;
+        }
+    }
 }
 
 void battle_apply_damage(BattleUnit *target, int damage)

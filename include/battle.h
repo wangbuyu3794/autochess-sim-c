@@ -33,6 +33,8 @@ typedef struct
     int attack_range;
     BoardPosition position;
     int is_alive;
+    TraitId class_trait;
+    TraitId origin_trait;
 } BattleUnit;
 
 typedef struct
@@ -46,6 +48,7 @@ BattleUnit battle_create_unit(int instance_id, const HeroTemplate *hero, BattleS
 BattleUnit battle_create_unit_at(int instance_id, const HeroTemplate *hero, BattleSide side, BoardPosition position);
 BattleUnit battle_create_unit_at_star(int instance_id, const HeroTemplate *hero, BattleSide side, BoardPosition position, int star);
 void battle_add_unit(BattleContext *context, BattleUnit unit);
+void battle_apply_trait_summary(BattleContext *context);
 void battle_apply_damage(BattleUnit *target, int damage);
 int battle_select_target_nearest(const BattleContext *context, int attacker_index);
 int battle_is_position_occupied(const BattleContext *context, BoardPosition position);

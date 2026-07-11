@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#include "trait.h"
+
 typedef struct
 {
     int id;
@@ -11,6 +13,8 @@ typedef struct
     int base_hp;
     int base_attack;
     int attack_range;
+    TraitId class_trait;
+    TraitId origin_trait;
 } HeroTemplate;
 
 const HeroTemplate *hero_get_template(int template_id);

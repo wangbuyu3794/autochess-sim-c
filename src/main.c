@@ -40,6 +40,7 @@ int main(void)
 
     player_add_deployed_units_to_battle(&player, &context);
     player_add_deployed_units_to_battle(&enemy, &context);
+    battle_apply_trait_summary(&context);
 
     BattleResult result = battle_run(&context, stdout);
 
