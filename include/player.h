@@ -25,6 +25,7 @@ typedef struct
     int health;
     int gold;
     int level;
+    int experience;
     Unit units[AUTOCHESS_MAX_PLAYER_UNITS];
     int unit_count;
     int bench_slots[AUTOCHESS_BENCH_SIZE];

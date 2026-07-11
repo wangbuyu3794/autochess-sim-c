@@ -55,6 +55,7 @@ void player_init(Player *player, int id, BattleSide side)
     player->health = 100;
     player->gold = 10;
     player->level = 3;
+    player->experience = 0;
     player->unit_count = 0;
     player_clear_bench(player);
 }

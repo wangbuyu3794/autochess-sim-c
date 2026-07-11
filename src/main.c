@@ -1,12 +1,15 @@
 #include <stdio.h>
 
 #include "battle.h"
+#include "economy.h"
 #include "player.h"
+#include "shop.h"
 
 int main(void)
 {
     Player player;
     Player enemy;
+    Shop player_shop;
     BattleContext context = {0};
     BoardPosition player_front = {6, 3};
     BoardPosition player_left = {7, 2};
@@ -17,10 +20,13 @@ int main(void)
 
     player_init(&player, 1, BATTLE_SIDE_PLAYER);
     player_init(&enemy, 2, BATTLE_SIDE_ENEMY);
+    shop_init(&player_shop, 20260711u);
 
-    player_add_unit_to_bench(&player, unit_create(1, 1));
-    player_add_unit_to_bench(&player, unit_create(2, 2));
-    player_add_unit_to_bench(&player, unit_create(3, 3));
+    economy_apply_round_income(&player);
+    shop_refresh(&player_shop, player.level);
+    shop_buy_slot(&player_shop, &player, 0, 1);
+    shop_buy_slot(&player_shop, &player, 1, 2);
+    shop_buy_slot(&player_shop, &player, 2, 3);
     player_deploy_from_bench(&player, 0, player_front);
     player_deploy_from_bench(&player, 1, player_left);
     player_deploy_from_bench(&player, 2, player_back);
