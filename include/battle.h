@@ -44,6 +44,7 @@ typedef struct
 
 BattleUnit battle_create_unit(int instance_id, const HeroTemplate *hero, BattleSide side);
 BattleUnit battle_create_unit_at(int instance_id, const HeroTemplate *hero, BattleSide side, BoardPosition position);
+BattleUnit battle_create_unit_at_star(int instance_id, const HeroTemplate *hero, BattleSide side, BoardPosition position, int star);
 void battle_add_unit(BattleContext *context, BattleUnit unit);
 void battle_apply_damage(BattleUnit *target, int damage);
 int battle_select_target_nearest(const BattleContext *context, int attacker_index);

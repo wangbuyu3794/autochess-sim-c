@@ -28,6 +28,50 @@ static int player_find_empty_bench_slot(const Player *player)
     return -1;
 }
 
+static void player_clear_bench_slot_for_unit(Player *player, int unit_index)
+{
+    if (player == 0)
+    {
+        return;
+    }
+
+    for (int i = 0; i < AUTOCHESS_BENCH_SIZE; ++i)
+    {
+        if (player->bench_slots[i] == unit_index)
+        {
+            player->bench_slots[i] = -1;
+        }
+    }
+}
+
+static int player_find_merge_candidates(const Player *player, int template_id, int star, int candidates[3])
+{
+    int count = 0;
+
+    if (player == 0 || candidates == 0)
+    {
+        return 0;
+    }
+
+    for (int i = 0; i < player->unit_count; ++i)
+    {
+        const Unit *unit = &player->units[i];
+
+        if (unit->is_active && unit->template_id == template_id && unit->star == star)
+        {
+            candidates[count] = i;
+            count += 1;
+
+            if (count == 3)
+            {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
 static int player_is_valid_deploy_position(const Player *player, BoardPosition position)
 {
     if (player == 0)
@@ -83,6 +127,7 @@ PlayerResult player_add_unit_to_bench(Player *player, Unit unit)
     player->units[player->unit_count] = unit;
     player->bench_slots[bench_index] = player->unit_count;
     player->unit_count += 1;
+    player_try_merge_units(player);
 
     return PLAYER_OK;
 }
@@ -184,6 +229,59 @@ PlayerResult player_return_unit_to_bench(Player *player, BoardPosition position)
     return PLAYER_OK;
 }
 
+int player_try_merge_units(Player *player)
+{
+    int merged_count = 0;
+    int did_merge = 1;
+
+    if (player == 0)
+    {
+        return 0;
+    }
+
+    while (did_merge)
+    {
+        did_merge = 0;
+
+        for (int i = 0; i < player->unit_count; ++i)
+        {
+            Unit *unit = &player->units[i];
+            int candidates[3] = {-1, -1, -1};
+
+            if (!unit->is_active || unit->star >= AUTOCHESS_MAX_STAR)
+            {
+                continue;
+            }
+
+            if (player_find_merge_candidates(player, unit->template_id, unit->star, candidates))
+            {
+                Unit *kept = &player->units[candidates[0]];
+                Unit *removed_a = &player->units[candidates[1]];
+                Unit *removed_b = &player->units[candidates[2]];
+
+                kept->star += 1;
+
+                player_clear_bench_slot_for_unit(player, candidates[1]);
+                player_clear_bench_slot_for_unit(player, candidates[2]);
+
+                removed_a->is_active = 0;
+                removed_a->location = UNIT_LOCATION_NONE;
+                removed_a->bench_index = -1;
+
+                removed_b->is_active = 0;
+                removed_b->location = UNIT_LOCATION_NONE;
+                removed_b->bench_index = -1;
+
+                merged_count += 1;
+                did_merge = 1;
+                break;
+            }
+        }
+    }
+
+    return merged_count;
+}
+
 int player_count_deployed_units(const Player *player)
 {
     int count = 0;
@@ -196,6 +294,48 @@ int player_count_deployed_units(const Player *player)
     for (int i = 0; i < player->unit_count; ++i)
     {
         if (unit_is_deployed(&player->units[i]))
+        {
+            count += 1;
+        }
+    }
+
+    return count;
+}
+
+int player_count_active_units(const Player *player)
+{
+    int count = 0;
+
+    if (player == 0)
+    {
+        return count;
+    }
+
+    for (int i = 0; i < player->unit_count; ++i)
+    {
+        if (player->units[i].is_active)
+        {
+            count += 1;
+        }
+    }
+
+    return count;
+}
+
+int player_count_units_by_template_and_star(const Player *player, int template_id, int star)
+{
+    int count = 0;
+
+    if (player == 0)
+    {
+        return count;
+    }
+
+    for (int i = 0; i < player->unit_count; ++i)
+    {
+        const Unit *unit = &player->units[i];
+
+        if (unit->is_active && unit->template_id == template_id && unit->star == star)
         {
             count += 1;
         }
@@ -243,7 +383,7 @@ void player_add_deployed_units_to_battle(const Player *player, BattleContext *co
         if (unit_is_deployed(unit))
         {
             const HeroTemplate *hero = hero_get_template(unit->template_id);
-            BattleUnit battle_unit = battle_create_unit_at(unit->instance_id, hero, player->side, unit->position);
+            BattleUnit battle_unit = battle_create_unit_at_star(unit->instance_id, hero, player->side, unit->position, unit->star);
             battle_add_unit(context, battle_unit);
         }
     }

@@ -12,15 +12,33 @@ BattleUnit battle_create_unit(int instance_id, const HeroTemplate *hero, BattleS
 
 BattleUnit battle_create_unit_at(int instance_id, const HeroTemplate *hero, BattleSide side, BoardPosition position)
 {
+    return battle_create_unit_at_star(instance_id, hero, side, position, 1);
+}
+
+BattleUnit battle_create_unit_at_star(int instance_id, const HeroTemplate *hero, BattleSide side, BoardPosition position, int star)
+{
     BattleUnit unit;
+    int hp_percent = 100;
+    int attack_percent = 100;
+
+    if (star == 2)
+    {
+        hp_percent = 180;
+        attack_percent = 170;
+    }
+    else if (star >= 3)
+    {
+        hp_percent = 320;
+        attack_percent = 300;
+    }
 
     unit.instance_id = instance_id;
     unit.template_id = hero != NULL ? hero->id : 0;
     unit.side = side;
     unit.name = hero != NULL ? hero->name : "未知单位";
-    unit.max_hp = hero != NULL ? hero->base_hp : 1;
+    unit.max_hp = ((hero != NULL ? hero->base_hp : 1) * hp_percent) / 100;
     unit.current_hp = unit.max_hp;
-    unit.attack = hero != NULL ? hero->base_attack : 1;
+    unit.attack = ((hero != NULL ? hero->base_attack : 1) * attack_percent) / 100;
     unit.attack_range = hero != NULL ? hero->attack_range : 1;
     unit.position = position;
     unit.is_alive = 1;

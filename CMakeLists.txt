@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(AutoChessC
-    VERSION 0.4.0
+    VERSION 0.5.0
     DESCRIPTION "A terminal auto chess simulator for learning C"
     LANGUAGES C
 )
@@ -78,9 +78,17 @@ add_executable(test_shop
 target_link_libraries(test_shop PRIVATE autochess_core)
 autochess_enable_warnings(test_shop)
 
+add_executable(test_merge
+    tests/test_merge.c
+)
+
+target_link_libraries(test_merge PRIVATE autochess_core)
+autochess_enable_warnings(test_merge)
+
 enable_testing()
 add_test(NAME battle_tests COMMAND test_battle)
 add_test(NAME board_tests COMMAND test_board)
 add_test(NAME player_tests COMMAND test_player)
 add_test(NAME economy_tests COMMAND test_economy)
 add_test(NAME shop_tests COMMAND test_shop)
+add_test(NAME merge_tests COMMAND test_merge)
