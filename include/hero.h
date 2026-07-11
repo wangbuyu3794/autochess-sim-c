@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 
+#include "skill.h"
 #include "trait.h"
 
 typedef struct
@@ -13,6 +14,9 @@ typedef struct
     int base_hp;
     int base_attack;
     int attack_range;
+    int initial_mana;
+    int max_mana;
+    SkillId skill_id;
     TraitId class_trait;
     TraitId origin_trait;
 } HeroTemplate;

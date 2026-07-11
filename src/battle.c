@@ -3,6 +3,7 @@
 #include <stddef.h>
 
 #include "logger.h"
+#include "skill.h"
 #include "trait.h"
 
 BattleUnit battle_create_unit(int instance_id, const HeroTemplate *hero, BattleSide side)
@@ -41,6 +42,9 @@ BattleUnit battle_create_unit_at_star(int instance_id, const HeroTemplate *hero,
     unit.current_hp = unit.max_hp;
     unit.attack = ((hero != NULL ? hero->base_attack : 1) * attack_percent) / 100;
     unit.attack_range = hero != NULL ? hero->attack_range : 1;
+    unit.current_mana = hero != NULL ? hero->initial_mana : 0;
+    unit.max_mana = hero != NULL ? hero->max_mana : 0;
+    unit.skill_id = hero != NULL ? hero->skill_id : SKILL_NONE;
     unit.position = position;
     unit.is_alive = 1;
     unit.class_trait = hero != NULL ? hero->class_trait : TRAIT_NONE;
@@ -125,6 +129,20 @@ void battle_apply_damage(BattleUnit *target, int damage)
     {
         target->current_hp = 0;
         target->is_alive = 0;
+    }
+}
+
+void battle_gain_mana(BattleUnit *unit, int amount)
+{
+    if (unit == NULL || unit->is_alive == 0 || unit->max_mana <= 0 || amount <= 0)
+    {
+        return;
+    }
+
+    unit->current_mana += amount;
+    if (unit->current_mana > unit->max_mana)
+    {
+        unit->current_mana = unit->max_mana;
     }
 }
 
@@ -355,10 +373,19 @@ BattleResult battle_run(BattleContext *context, FILE *log_stream)
 
             battle_apply_damage(target, attacker->attack);
             logger_attack(log_stream, attacker->name, target->name, attacker->attack, target->current_hp, target->max_hp);
+            battle_gain_mana(attacker, AUTOCHESS_ATTACK_MANA_GAIN);
 
             if (target->is_alive == 0)
             {
                 logger_defeated(log_stream, target->name);
+            }
+
+            if (attacker->is_alive &&
+                attacker->skill_id != SKILL_NONE &&
+                attacker->max_mana > 0 &&
+                attacker->current_mana >= attacker->max_mana)
+            {
+                skill_cast(context, i, target_index, log_stream);
             }
 
             result = battle_check_result(context);

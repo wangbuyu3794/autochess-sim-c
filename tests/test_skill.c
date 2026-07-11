@@ -1,0 +1,115 @@
+#include <stdio.h>
+
+#include "battle.h"
+#include "skill.h"
+
+static int g_failed_tests = 0;
+
+#define EXPECT_TRUE(condition)                                              \
+    do                                                                      \
+    {                                                                       \
+        if (!(condition))                                                   \
+        {                                                                   \
+            printf("FAILED: %s:%d: %s\n", __FILE__, __LINE__, #condition); \
+            g_failed_tests += 1;                                            \
+        }                                                                   \
+    } while (0)
+
+#define EXPECT_EQ(expected, actual)                                                                 \
+    do                                                                                              \
+    {                                                                                               \
+        int expected_value = (expected);                                                            \
+        int actual_value = (actual);                                                                \
+        if (expected_value != actual_value)                                                         \
+        {                                                                                           \
+            printf("FAILED: %s:%d: expected %d, got %d\n", __FILE__, __LINE__, expected_value, actual_value); \
+            g_failed_tests += 1;                                                                    \
+        }                                                                                           \
+    } while (0)
+
+static BattleContext make_context_with_two_units(int player_template_id, int enemy_template_id)
+{
+    BattleContext context = {0};
+    BoardPosition player_position = {7, 3};
+    BoardPosition enemy_position = {6, 3};
+
+    battle_add_unit(&context, battle_create_unit_at(1, hero_get_template(player_template_id), BATTLE_SIDE_PLAYER, player_position));
+    battle_add_unit(&context, battle_create_unit_at(101, hero_get_template(enemy_template_id), BATTLE_SIDE_ENEMY, enemy_position));
+
+    return context;
+}
+
+static void test_mana_gain_is_capped(void)
+{
+    BattleUnit unit = battle_create_unit(1, hero_get_template(4), BATTLE_SIDE_PLAYER);
+
+    battle_gain_mana(&unit, 40);
+    battle_gain_mana(&unit, 40);
+
+    EXPECT_EQ(unit.max_mana, unit.current_mana);
+}
+
+static void test_fireball_deals_damage_and_resets_mana(void)
+{
+    BattleContext context = make_context_with_two_units(4, 1);
+    int before_hp = context.units[1].current_hp;
+
+    context.units[0].current_mana = context.units[0].max_mana;
+
+    EXPECT_TRUE(skill_cast(&context, 0, 1, NULL));
+    EXPECT_EQ(0, context.units[0].current_mana);
+    EXPECT_EQ(before_hp - 45, context.units[1].current_hp);
+}
+
+static void test_iron_shield_heals_self_and_resets_mana(void)
+{
+    BattleContext context = make_context_with_two_units(1, 4);
+
+    context.units[0].current_hp = 50;
+    context.units[0].current_mana = context.units[0].max_mana;
+
+    EXPECT_TRUE(skill_cast(&context, 0, 1, NULL));
+    EXPECT_EQ(0, context.units[0].current_mana);
+    EXPECT_EQ(85, context.units[0].current_hp);
+}
+
+static void test_skill_does_not_cast_without_full_mana(void)
+{
+    BattleContext context = make_context_with_two_units(4, 1);
+    int before_hp = context.units[1].current_hp;
+
+    context.units[0].current_mana = context.units[0].max_mana - 1;
+
+    EXPECT_TRUE(!skill_cast(&context, 0, 1, NULL));
+    EXPECT_EQ(before_hp, context.units[1].current_hp);
+}
+
+static void test_battle_attack_gains_mana_and_eventually_casts(void)
+{
+    BattleContext context = make_context_with_two_units(4, 1);
+    int before_hp = context.units[1].current_hp;
+
+    context.units[0].current_mana = context.units[0].max_mana - AUTOCHESS_ATTACK_MANA_GAIN;
+    battle_run(&context, NULL);
+
+    EXPECT_TRUE(context.units[1].current_hp < before_hp - context.units[0].attack ||
+                !context.units[1].is_alive);
+}
+
+int main(void)
+{
+    test_mana_gain_is_capped();
+    test_fireball_deals_damage_and_resets_mana();
+    test_iron_shield_heals_self_and_resets_mana();
+    test_skill_does_not_cast_without_full_mana();
+    test_battle_attack_gains_mana_and_eventually_casts();
+
+    if (g_failed_tests == 0)
+    {
+        printf("All skill tests passed.\n");
+        return 0;
+    }
+
+    printf("%d skill test(s) failed.\n", g_failed_tests);
+    return 1;
+}

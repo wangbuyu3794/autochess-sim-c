@@ -21,7 +21,7 @@ typedef enum
     BATTLE_RESULT_DRAW
 } BattleResult;
 
-typedef struct
+typedef struct BattleUnit
 {
     int instance_id;
     int template_id;
@@ -31,13 +31,16 @@ typedef struct
     int current_hp;
     int attack;
     int attack_range;
+    int current_mana;
+    int max_mana;
+    SkillId skill_id;
     BoardPosition position;
     int is_alive;
     TraitId class_trait;
     TraitId origin_trait;
 } BattleUnit;
 
-typedef struct
+typedef struct BattleContext
 {
     BattleUnit units[AUTOCHESS_MAX_BATTLE_UNITS];
     int unit_count;
@@ -50,6 +53,7 @@ BattleUnit battle_create_unit_at_star(int instance_id, const HeroTemplate *hero,
 void battle_add_unit(BattleContext *context, BattleUnit unit);
 void battle_apply_trait_summary(BattleContext *context);
 void battle_apply_damage(BattleUnit *target, int damage);
+void battle_gain_mana(BattleUnit *unit, int amount);
 int battle_select_target_nearest(const BattleContext *context, int attacker_index);
 int battle_is_position_occupied(const BattleContext *context, BoardPosition position);
 int battle_is_target_in_range(const BattleUnit *attacker, const BattleUnit *target);

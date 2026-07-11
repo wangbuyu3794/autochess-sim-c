@@ -4,7 +4,15 @@ void logger_battle_start(FILE *stream)
 {
     if (stream != NULL)
     {
-        fprintf(stream, "自走棋模拟 - V0.4 商店经济战斗模拟器\n\n");
+        fprintf(stream, "自走棋模拟 - V0.7 法力技能战斗模拟器\n\n");
+    }
+}
+
+void logger_skill(FILE *stream, const char *caster, const char *skill_name_text, const char *target)
+{
+    if (stream != NULL)
+    {
+        fprintf(stream, "%s 释放 %s，目标：%s\n", caster, skill_name_text, target);
     }
 }
 
