@@ -36,6 +36,7 @@ PlayerResult player_add_unit_to_bench(Player *player, Unit unit);
 PlayerResult player_deploy_from_bench(Player *player, int bench_index, BoardPosition position);
 PlayerResult player_move_deployed_unit(Player *player, BoardPosition from, BoardPosition to);
 PlayerResult player_return_unit_to_bench(Player *player, BoardPosition position);
+PlayerResult player_sell_unit(Player *player, int unit_index, int *refund);
 int player_try_merge_units(Player *player);
 int player_count_deployed_units(const Player *player);
 int player_count_active_units(const Player *player);

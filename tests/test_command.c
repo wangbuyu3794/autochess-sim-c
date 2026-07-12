@@ -51,6 +51,18 @@ static void test_refresh_command_costs_gold(void)
     EXPECT_EQ(8, game.player.gold);
 }
 
+static void test_buyxp_command_spends_gold_and_levels_up(void)
+{
+    GameContext game;
+    game_init(&game, 1u, 2u);
+    game.player.gold = 10;
+
+    EXPECT_EQ(COMMAND_RESULT_CONTINUE, command_execute_preparation(&game, "buyxp", NULL));
+    EXPECT_EQ(6, game.player.gold);
+    EXPECT_EQ(4, game.player.level);
+    EXPECT_EQ(0, game.player.experience);
+}
+
 static void test_auto_command_deploys_units(void)
 {
     GameContext game;
@@ -100,6 +112,29 @@ static void test_recall_command_returns_unit_to_bench(void)
     EXPECT_TRUE(player_count_active_units(&game.player) == 1);
 }
 
+static void test_sell_command_removes_unit_and_refunds_gold(void)
+{
+    GameContext game;
+    int gold_before = 0;
+    game_init(&game, 1u, 2u);
+    shop_refresh(&game.player_shop, game.player.level);
+    command_execute_preparation(&game, "buy 1", NULL);
+    gold_before = game.player.gold;
+
+    EXPECT_EQ(COMMAND_RESULT_CONTINUE, command_execute_preparation(&game, "sell 0", NULL));
+    EXPECT_EQ(0, player_count_active_units(&game.player));
+    EXPECT_TRUE(game.player.gold > gold_before);
+}
+
+static void test_sell_rejects_missing_unit(void)
+{
+    GameContext game;
+    game_init(&game, 1u, 2u);
+
+    EXPECT_EQ(COMMAND_RESULT_ERROR, command_execute_preparation(&game, "sell 99", NULL));
+    EXPECT_EQ(10, game.player.gold);
+}
+
 static void test_deploy_rejects_enemy_side(void)
 {
     GameContext game;
@@ -141,10 +176,13 @@ int main(void)
 {
     test_buy_command_adds_unit();
     test_refresh_command_costs_gold();
+    test_buyxp_command_spends_gold_and_levels_up();
     test_auto_command_deploys_units();
     test_deploy_command_places_bench_unit();
     test_move_command_moves_deployed_unit();
     test_recall_command_returns_unit_to_bench();
+    test_sell_command_removes_unit_and_refunds_gold();
+    test_sell_rejects_missing_unit();
     test_deploy_rejects_enemy_side();
     test_ready_and_quit_commands();
     test_command_accepts_utf8_bom();

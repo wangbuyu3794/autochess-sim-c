@@ -229,6 +229,60 @@ PlayerResult player_return_unit_to_bench(Player *player, BoardPosition position)
     return PLAYER_OK;
 }
 
+PlayerResult player_sell_unit(Player *player, int unit_index, int *refund)
+{
+    Unit *unit = 0;
+    const HeroTemplate *hero = 0;
+    int multiplier = 1;
+    int sell_value = 0;
+
+    if (player == 0 || refund == 0)
+    {
+        return PLAYER_ERROR_INVALID_ARGUMENT;
+    }
+
+    *refund = 0;
+
+    if (unit_index < 0 || unit_index >= player->unit_count)
+    {
+        return PLAYER_ERROR_UNIT_NOT_FOUND;
+    }
+
+    unit = &player->units[unit_index];
+    if (!unit->is_active)
+    {
+        return PLAYER_ERROR_UNIT_NOT_FOUND;
+    }
+
+    hero = hero_get_template(unit->template_id);
+    if (hero == 0)
+    {
+        return PLAYER_ERROR_UNIT_NOT_FOUND;
+    }
+
+    if (unit->star == 2)
+    {
+        multiplier = 3;
+    }
+    else if (unit->star >= 3)
+    {
+        multiplier = 9;
+    }
+
+    sell_value = hero->cost * multiplier;
+    player_clear_bench_slot_for_unit(player, unit_index);
+
+    unit->is_active = 0;
+    unit->location = UNIT_LOCATION_NONE;
+    unit->bench_index = -1;
+    unit->position.row = -1;
+    unit->position.col = -1;
+
+    player->gold += sell_value;
+    *refund = sell_value;
+    return PLAYER_OK;
+}
+
 int player_try_merge_units(Player *player)
 {
     int merged_count = 0;

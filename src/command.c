@@ -137,6 +137,8 @@ void command_print_help(FILE *output)
     fprintf(output, "  shop       查看商店\n");
     fprintf(output, "  bench      查看备战席和已上场单位\n");
     fprintf(output, "  buy <1-5>  购买商店中的英雄\n");
+    fprintf(output, "  sell <编号>  出售单位，例如 sell 0\n");
+    fprintf(output, "  buyxp      花费 %d 金币购买 %d 经验\n", AUTOCHESS_BUY_EXP_COST, AUTOCHESS_BUY_EXP_AMOUNT);
     fprintf(output, "  refresh    花费 %d 金币刷新商店\n", AUTOCHESS_REFRESH_COST);
     fprintf(output, "  deploy <备战席> <行> <列>  部署备战席单位，例如 deploy 1 6 3\n");
     fprintf(output, "  move <旧行> <旧列> <新行> <新列>  移动已上场单位\n");
@@ -186,13 +188,15 @@ void command_print_roster(const GameContext *game, FILE *output)
     }
 
     fprintf(output,
-            "玩家：生命 %d，金币 %d，等级 %d，经验 %d，上场 %d/%d\n",
+            "玩家：生命 %d，金币 %d，等级 %d，经验 %d/%d，上场 %d/%d，下回合收入 %d\n",
             game->player.health,
             game->player.gold,
             game->player.level,
             game->player.experience,
+            game->player.level >= AUTOCHESS_MAX_LEVEL ? 0 : AUTOCHESS_EXP_PER_LEVEL,
             player_count_deployed_units(&game->player),
-            game->player.level);
+            game->player.level,
+            economy_calculate_round_income(game->player.gold));
 
     for (int i = 0; i < game->player.unit_count; ++i)
     {
@@ -294,6 +298,52 @@ CommandResult command_execute_preparation(GameContext *game, const char *line, F
             game->player_next_instance_id += 1;
         }
         return result == SHOP_OK ? COMMAND_RESULT_CONTINUE : COMMAND_RESULT_ERROR;
+    }
+
+    if (strcmp(command, "sell") == 0)
+    {
+        int unit_index = -1;
+        int refund = 0;
+        PlayerResult result = PLAYER_OK;
+
+        if (!command_parse_int(argument, &unit_index))
+        {
+            fprintf(out, "出售失败：请输入 sell <单位编号>，例如 sell 0。\n");
+            return COMMAND_RESULT_ERROR;
+        }
+
+        result = player_sell_unit(&game->player, unit_index, &refund);
+        if (result == PLAYER_OK)
+        {
+            fprintf(out, "出售结果：成功，获得 %d 金币。\n", refund);
+            command_print_roster(game, out);
+        }
+        else
+        {
+            fprintf(out, "出售结果：%s\n", player_result_name(result));
+        }
+        return result == PLAYER_OK ? COMMAND_RESULT_CONTINUE : COMMAND_RESULT_ERROR;
+    }
+
+    if (strcmp(command, "buyxp") == 0)
+    {
+        int level_before = game->player.level;
+        int experience_before = game->player.experience;
+
+        if (!economy_buy_experience(&game->player))
+        {
+            fprintf(out, "购买经验失败：金币不足。\n");
+            return COMMAND_RESULT_ERROR;
+        }
+
+        fprintf(out,
+                "购买经验成功：等级 %d -> %d，经验 %d -> %d，剩余金币 %d。\n",
+                level_before,
+                game->player.level,
+                experience_before,
+                game->player.experience,
+                game->player.gold);
+        return COMMAND_RESULT_CONTINUE;
     }
 
     if (strcmp(command, "deploy") == 0)
