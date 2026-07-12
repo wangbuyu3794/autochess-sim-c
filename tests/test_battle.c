@@ -52,6 +52,48 @@ static void test_damage_clamps_hp_and_kills_unit(void)
     EXPECT_EQ(0, unit.is_alive);
 }
 
+static void test_mitigated_damage_uses_resistance(void)
+{
+    EXPECT_EQ(40, battle_calculate_mitigated_damage(50, 25));
+    EXPECT_EQ(1, battle_calculate_mitigated_damage(1, 300));
+    EXPECT_EQ(0, battle_calculate_mitigated_damage(0, 25));
+}
+
+static void test_attack_damage_uses_armor(void)
+{
+    BattleUnit attacker = battle_create_unit(1, hero_get_template(2), BATTLE_SIDE_PLAYER);
+    BattleUnit target = battle_create_unit(101, hero_get_template(1), BATTLE_SIDE_ENEMY);
+
+    attacker.attack = 50;
+    attacker.crit_chance = 0;
+    target.armor = 25;
+
+    EXPECT_EQ(40, battle_calculate_attack_damage(&attacker, &target, 1));
+}
+
+static void test_attack_damage_can_crit(void)
+{
+    BattleUnit attacker = battle_create_unit(1, hero_get_template(2), BATTLE_SIDE_PLAYER);
+    BattleUnit target = battle_create_unit(101, hero_get_template(1), BATTLE_SIDE_ENEMY);
+
+    attacker.attack = 40;
+    attacker.crit_chance = 100;
+    attacker.crit_damage = 175;
+    target.armor = 0;
+
+    EXPECT_TRUE(battle_is_critical_hit(&attacker, &target, 1));
+    EXPECT_EQ(70, battle_calculate_attack_damage(&attacker, &target, 1));
+}
+
+static void test_spell_damage_uses_magic_resist(void)
+{
+    BattleUnit target = battle_create_unit(101, hero_get_template(1), BATTLE_SIDE_ENEMY);
+
+    target.magic_resist = 20;
+
+    EXPECT_EQ(37, battle_calculate_spell_damage(45, &target));
+}
+
 static void test_selects_lowest_hp_target(void)
 {
     BattleContext context = make_empty_context();
@@ -187,6 +229,10 @@ int main(void)
 {
     test_damage_reduces_hp();
     test_damage_clamps_hp_and_kills_unit();
+    test_mitigated_damage_uses_resistance();
+    test_attack_damage_uses_armor();
+    test_attack_damage_can_crit();
+    test_spell_damage_uses_magic_resist();
     test_selects_lowest_hp_target();
     test_selects_smaller_instance_id_when_hp_ties();
     test_selects_nearest_target_before_lowest_hp();

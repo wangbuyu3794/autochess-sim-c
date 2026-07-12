@@ -13,6 +13,10 @@ typedef struct
     int cost;
     int base_hp;
     int base_attack;
+    int armor;
+    int magic_resist;
+    int crit_chance;
+    int crit_damage;
     int attack_range;
     int initial_mana;
     int max_mana;

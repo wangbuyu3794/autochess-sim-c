@@ -58,7 +58,7 @@ static void test_fireball_deals_damage_and_resets_mana(void)
 
     EXPECT_TRUE(skill_cast(&context, 0, 1, NULL));
     EXPECT_EQ(0, context.units[0].current_mana);
-    EXPECT_EQ(before_hp - 45, context.units[1].current_hp);
+    EXPECT_EQ(before_hp - 40, context.units[1].current_hp);
 }
 
 static void test_iron_shield_heals_self_and_resets_mana(void)

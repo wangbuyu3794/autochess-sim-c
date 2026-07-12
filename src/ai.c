@@ -46,6 +46,10 @@ int ai_score_hero_template(const HeroTemplate *hero)
     return hero->cost * 100 +
            hero->base_attack * 3 +
            hero->base_hp +
+           hero->armor * 2 +
+           hero->magic_resist * 2 +
+           hero->crit_chance +
+           hero->crit_damage / 10 +
            hero->attack_range * 10;
 }
 

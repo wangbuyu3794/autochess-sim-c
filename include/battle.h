@@ -30,6 +30,10 @@ typedef struct BattleUnit
     int max_hp;
     int current_hp;
     int attack;
+    int armor;
+    int magic_resist;
+    int crit_chance;
+    int crit_damage;
     int attack_range;
     int current_mana;
     int max_mana;
@@ -53,6 +57,10 @@ BattleUnit battle_create_unit_at_star(int instance_id, const HeroTemplate *hero,
 void battle_add_unit(BattleContext *context, BattleUnit unit);
 void battle_apply_trait_summary(BattleContext *context);
 void battle_apply_damage(BattleUnit *target, int damage);
+int battle_calculate_mitigated_damage(int raw_damage, int resistance);
+int battle_is_critical_hit(const BattleUnit *attacker, const BattleUnit *target, int round);
+int battle_calculate_attack_damage(const BattleUnit *attacker, const BattleUnit *target, int round);
+int battle_calculate_spell_damage(int raw_damage, const BattleUnit *target);
 void battle_gain_mana(BattleUnit *unit, int amount);
 int battle_select_target_nearest(const BattleContext *context, int attacker_index);
 int battle_is_position_occupied(const BattleContext *context, BoardPosition position);

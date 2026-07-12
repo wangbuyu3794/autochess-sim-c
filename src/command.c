@@ -172,12 +172,15 @@ void command_print_shop(const GameContext *game, FILE *output)
         }
 
         fprintf(output,
-                "  %d. %s，费用 %d，生命 %d，攻击 %d，射程 %d\n",
+                "  %d. %s，费用 %d，生命 %d，攻击 %d，护甲 %d，魔抗 %d，暴击 %d%%，射程 %d\n",
                 i + 1,
                 hero->name,
                 hero->cost,
                 hero->base_hp,
                 hero->base_attack,
+                hero->armor,
+                hero->magic_resist,
+                hero->crit_chance,
                 hero->attack_range);
     }
 }
@@ -212,11 +215,15 @@ static void command_print_hero_pool(FILE *output)
     for (size_t i = 0; i < count; ++i)
     {
         fprintf(output,
-                "  %s：%d费，生命 %d，攻击 %d，射程 %d\n",
+                "  %s：%d费，生命 %d，攻击 %d，护甲 %d，魔抗 %d，暴击 %d%%，爆伤 %d%%，射程 %d\n",
                 templates[i].name,
                 templates[i].cost,
                 templates[i].base_hp,
                 templates[i].base_attack,
+                templates[i].armor,
+                templates[i].magic_resist,
+                templates[i].crit_chance,
+                templates[i].crit_damage,
                 templates[i].attack_range);
     }
 }

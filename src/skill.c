@@ -77,15 +77,15 @@ int skill_cast(BattleContext *context, int caster_index, int target_index, FILE 
 
     if (skill_id == SKILL_POWER_STRIKE)
     {
-        battle_apply_damage(target, caster->attack);
+        battle_apply_damage(target, battle_calculate_mitigated_damage(caster->attack, target->armor));
     }
     else if (skill_id == SKILL_QUICK_SHOT)
     {
-        battle_apply_damage(target, 30);
+        battle_apply_damage(target, battle_calculate_mitigated_damage(30, target->armor));
     }
     else if (skill_id == SKILL_FIREBALL)
     {
-        battle_apply_damage(target, 45);
+        battle_apply_damage(target, battle_calculate_spell_damage(45, target));
     }
 
     if (!target->is_alive)

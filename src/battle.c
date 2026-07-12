@@ -41,6 +41,10 @@ BattleUnit battle_create_unit_at_star(int instance_id, const HeroTemplate *hero,
     unit.max_hp = ((hero != NULL ? hero->base_hp : 1) * hp_percent) / 100;
     unit.current_hp = unit.max_hp;
     unit.attack = ((hero != NULL ? hero->base_attack : 1) * attack_percent) / 100;
+    unit.armor = hero != NULL ? hero->armor : 0;
+    unit.magic_resist = hero != NULL ? hero->magic_resist : 0;
+    unit.crit_chance = hero != NULL ? hero->crit_chance : 0;
+    unit.crit_damage = hero != NULL ? hero->crit_damage : 150;
     unit.attack_range = hero != NULL ? hero->attack_range : 1;
     unit.current_mana = hero != NULL ? hero->initial_mana : 0;
     unit.max_mana = hero != NULL ? hero->max_mana : 0;
@@ -168,6 +172,81 @@ void battle_apply_damage(BattleUnit *target, int damage)
         target->current_hp = 0;
         target->is_alive = 0;
     }
+}
+
+int battle_calculate_mitigated_damage(int raw_damage, int resistance)
+{
+    int damage = 0;
+
+    if (raw_damage <= 0)
+    {
+        return 0;
+    }
+
+    if (resistance < 0)
+    {
+        resistance = 0;
+    }
+
+    damage = (raw_damage * 100) / (100 + resistance);
+    if (damage < 1)
+    {
+        damage = 1;
+    }
+
+    return damage;
+}
+
+int battle_is_critical_hit(const BattleUnit *attacker, const BattleUnit *target, int round)
+{
+    int roll = 0;
+
+    if (attacker == NULL || target == NULL || attacker->crit_chance <= 0)
+    {
+        return 0;
+    }
+
+    if (attacker->crit_chance >= 100)
+    {
+        return 1;
+    }
+
+    if (round < 0)
+    {
+        round = 0;
+    }
+
+    roll = (attacker->instance_id * 31 + target->instance_id * 17 + round * 13) % 100;
+    return roll < attacker->crit_chance;
+}
+
+int battle_calculate_attack_damage(const BattleUnit *attacker, const BattleUnit *target, int round)
+{
+    int raw_damage = 0;
+
+    if (attacker == NULL || target == NULL || attacker->attack <= 0)
+    {
+        return 0;
+    }
+
+    raw_damage = attacker->attack;
+    if (battle_is_critical_hit(attacker, target, round))
+    {
+        int crit_damage = attacker->crit_damage > 0 ? attacker->crit_damage : 150;
+        raw_damage = (raw_damage * crit_damage) / 100;
+    }
+
+    return battle_calculate_mitigated_damage(raw_damage, target->armor);
+}
+
+int battle_calculate_spell_damage(int raw_damage, const BattleUnit *target)
+{
+    if (target == NULL)
+    {
+        return battle_calculate_mitigated_damage(raw_damage, 0);
+    }
+
+    return battle_calculate_mitigated_damage(raw_damage, target->magic_resist);
 }
 
 void battle_gain_mana(BattleUnit *unit, int amount)
@@ -409,8 +488,9 @@ BattleResult battle_run(BattleContext *context, FILE *log_stream)
                 continue;
             }
 
-            battle_apply_damage(target, attacker->attack);
-            logger_attack(log_stream, attacker->name, target->name, attacker->attack, target->current_hp, target->max_hp);
+            int attack_damage = battle_calculate_attack_damage(attacker, target, context->current_round);
+            battle_apply_damage(target, attack_damage);
+            logger_attack(log_stream, attacker->name, target->name, attack_damage, target->current_hp, target->max_hp);
             battle_gain_mana(attacker, AUTOCHESS_ATTACK_MANA_GAIN);
 
             if (target->is_alive == 0)
