@@ -4,10 +4,13 @@
 #include "logger.h"
 
 static const SkillDefinition SKILL_DEFINITIONS[] = {
-    {SKILL_IRON_SHIELD, "铁壁护盾", SKILL_DAMAGE_NONE, SKILL_TARGET_SELF, 0, 0, 35},
-    {SKILL_POWER_STRIKE, "破势斩", SKILL_DAMAGE_PHYSICAL, SKILL_TARGET_ENEMY, 0, 100, 0},
-    {SKILL_QUICK_SHOT, "连珠箭", SKILL_DAMAGE_PHYSICAL, SKILL_TARGET_ENEMY, 30, 0, 0},
-    {SKILL_FIREBALL, "火球术", SKILL_DAMAGE_MAGICAL, SKILL_TARGET_ENEMY, 45, 0, 0},
+    {SKILL_IRON_SHIELD, "铁壁护盾", SKILL_DAMAGE_NONE, SKILL_TARGET_SELF, 0, 0, 35, 0, 0},
+    {SKILL_POWER_STRIKE, "破势斩", SKILL_DAMAGE_PHYSICAL, SKILL_TARGET_ENEMY, 0, 100, 0, 0, 0},
+    {SKILL_QUICK_SHOT, "连珠箭", SKILL_DAMAGE_PHYSICAL, SKILL_TARGET_ENEMY, 30, 0, 0, 0, 0},
+    {SKILL_FIREBALL, "火球术", SKILL_DAMAGE_MAGICAL, SKILL_TARGET_ENEMY, 45, 0, 0, 0, 0},
+    {SKILL_ARCANE_BOLT, "秘法箭", SKILL_DAMAGE_MAGICAL, SKILL_TARGET_ENEMY, 25, 60, 0, 0, 0},
+    {SKILL_HOLY_GUARD, "圣光守护", SKILL_DAMAGE_NONE, SKILL_TARGET_SELF, 0, 0, 55, 0, 0},
+    {SKILL_EXECUTE_STRIKE, "终结斩", SKILL_DAMAGE_PHYSICAL, SKILL_TARGET_ENEMY, 10, 100, 0, 40, 25},
 };
 
 const char *skill_name(SkillId skill_id)
@@ -42,6 +45,13 @@ int skill_calculate_damage(const SkillDefinition *definition, const BattleUnit *
     }
 
     raw_damage = definition->base_damage + (caster->attack * definition->attack_percent) / 100;
+    if (definition->execute_threshold_percent > 0 &&
+        target->max_hp > 0 &&
+        target->current_hp * 100 <= target->max_hp * definition->execute_threshold_percent)
+    {
+        raw_damage += definition->execute_bonus_damage;
+    }
+
     if (raw_damage <= 0)
     {
         return 0;

@@ -54,13 +54,16 @@ static void test_skill_definitions_are_available(void)
     const SkillDefinition *shield = skill_get_definition(SKILL_IRON_SHIELD);
     const SkillDefinition *strike = skill_get_definition(SKILL_POWER_STRIKE);
     const SkillDefinition *fireball = skill_get_definition(SKILL_FIREBALL);
+    const SkillDefinition *execute = skill_get_definition(SKILL_EXECUTE_STRIKE);
 
     EXPECT_TRUE(shield != 0);
     EXPECT_TRUE(strike != 0);
     EXPECT_TRUE(fireball != 0);
+    EXPECT_TRUE(execute != 0);
     EXPECT_EQ(SKILL_TARGET_SELF, shield->target_type);
     EXPECT_EQ(SKILL_DAMAGE_PHYSICAL, strike->damage_type);
     EXPECT_EQ(SKILL_DAMAGE_MAGICAL, fireball->damage_type);
+    EXPECT_EQ(40, execute->execute_threshold_percent);
 }
 
 static void test_skill_definition_calculates_physical_damage(void)
@@ -84,6 +87,39 @@ static void test_skill_definition_calculates_healing(void)
     const SkillDefinition *definition = skill_get_definition(SKILL_IRON_SHIELD);
 
     EXPECT_EQ(35, skill_calculate_healing(definition));
+}
+
+static void test_arcane_bolt_uses_base_damage_and_attack_percent(void)
+{
+    BattleContext context = make_context_with_two_units(8, 1);
+    const SkillDefinition *definition = skill_get_definition(SKILL_ARCANE_BOLT);
+
+    EXPECT_EQ(44, skill_calculate_damage(definition, &context.units[0], &context.units[1]));
+}
+
+static void test_holy_guard_heals_more_than_iron_shield(void)
+{
+    const SkillDefinition *definition = skill_get_definition(SKILL_HOLY_GUARD);
+
+    EXPECT_EQ(55, skill_calculate_healing(definition));
+}
+
+static void test_execute_strike_bonus_triggers_on_low_hp(void)
+{
+    BattleContext context = make_context_with_two_units(10, 1);
+    const SkillDefinition *definition = skill_get_definition(SKILL_EXECUTE_STRIKE);
+
+    context.units[1].current_hp = 50;
+
+    EXPECT_EQ(70, skill_calculate_damage(definition, &context.units[0], &context.units[1]));
+}
+
+static void test_execute_strike_bonus_does_not_trigger_on_high_hp(void)
+{
+    BattleContext context = make_context_with_two_units(10, 1);
+    const SkillDefinition *definition = skill_get_definition(SKILL_EXECUTE_STRIKE);
+
+    EXPECT_EQ(49, skill_calculate_damage(definition, &context.units[0], &context.units[1]));
 }
 
 static void test_fireball_deals_damage_and_resets_mana(void)
@@ -140,6 +176,10 @@ int main(void)
     test_skill_definition_calculates_physical_damage();
     test_skill_definition_calculates_magical_damage();
     test_skill_definition_calculates_healing();
+    test_arcane_bolt_uses_base_damage_and_attack_percent();
+    test_holy_guard_heals_more_than_iron_shield();
+    test_execute_strike_bonus_triggers_on_low_hp();
+    test_execute_strike_bonus_does_not_trigger_on_high_hp();
     test_fireball_deals_damage_and_resets_mana();
     test_iron_shield_heals_self_and_resets_mana();
     test_skill_does_not_cast_without_full_mana();

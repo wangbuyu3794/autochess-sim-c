@@ -12,7 +12,10 @@ typedef enum
     SKILL_IRON_SHIELD = 1,
     SKILL_POWER_STRIKE = 2,
     SKILL_QUICK_SHOT = 3,
-    SKILL_FIREBALL = 4
+    SKILL_FIREBALL = 4,
+    SKILL_ARCANE_BOLT = 5,
+    SKILL_HOLY_GUARD = 6,
+    SKILL_EXECUTE_STRIKE = 7
 } SkillId;
 
 typedef enum
@@ -38,6 +41,8 @@ typedef struct
     int base_damage;
     int attack_percent;
     int healing;
+    int execute_threshold_percent;
+    int execute_bonus_damage;
 } SkillDefinition;
 
 const char *skill_name(SkillId skill_id);
