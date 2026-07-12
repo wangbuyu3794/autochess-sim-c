@@ -96,6 +96,33 @@ static void test_buy_rejects_not_enough_gold(void)
     EXPECT_EQ(0, player.unit_count);
 }
 
+static void test_prepare_round_respects_lock(void)
+{
+    Shop shop;
+    int first_template = 0;
+    shop_init(&shop, 123u);
+
+    shop_refresh(&shop, 3);
+    first_template = shop.slots[0].template_id;
+    shop_set_locked(&shop, 1);
+
+    EXPECT_EQ(0, shop_prepare_round(&shop, 3));
+    EXPECT_EQ(first_template, shop.slots[0].template_id);
+    EXPECT_EQ(0, shop.is_locked);
+}
+
+static void test_prepare_round_refreshes_when_unlocked(void)
+{
+    Shop shop;
+    shop_init(&shop, 123u);
+
+    EXPECT_EQ(1, shop_prepare_round(&shop, 3));
+    for (int i = 0; i < AUTOCHESS_SHOP_SIZE; ++i)
+    {
+        EXPECT_TRUE(shop.slots[i].is_available);
+    }
+}
+
 int main(void)
 {
     test_refresh_fills_shop();
@@ -103,6 +130,8 @@ int main(void)
     test_buy_slot_adds_unit_to_bench_and_spends_gold();
     test_buy_rejects_empty_slot();
     test_buy_rejects_not_enough_gold();
+    test_prepare_round_respects_lock();
+    test_prepare_round_refreshes_when_unlocked();
 
     if (g_failed_tests == 0)
     {

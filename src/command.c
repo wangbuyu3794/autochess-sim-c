@@ -139,6 +139,7 @@ void command_print_help(FILE *output)
     fprintf(output, "  buy <1-5>  购买商店中的英雄\n");
     fprintf(output, "  sell <编号>  出售单位，例如 sell 0\n");
     fprintf(output, "  buyxp      花费 %d 金币购买 %d 经验\n", AUTOCHESS_BUY_EXP_COST, AUTOCHESS_BUY_EXP_AMOUNT);
+    fprintf(output, "  lock       锁定或解锁商店，下回合保留当前商店\n");
     fprintf(output, "  refresh    花费 %d 金币刷新商店\n", AUTOCHESS_REFRESH_COST);
     fprintf(output, "  deploy <备战席> <行> <列>  部署备战席单位，例如 deploy 1 6 3\n");
     fprintf(output, "  move <旧行> <旧列> <新行> <新列>  移动已上场单位\n");
@@ -155,7 +156,7 @@ void command_print_shop(const GameContext *game, FILE *output)
         return;
     }
 
-    fprintf(output, "商店：\n");
+    fprintf(output, "商店：%s\n", game->player_shop.is_locked ? "已锁定" : "未锁定");
     for (int i = 0; i < AUTOCHESS_SHOP_SIZE; ++i)
     {
         const ShopSlot *slot = &game->player_shop.slots[i];
@@ -278,6 +279,14 @@ CommandResult command_execute_preparation(GameContext *game, const char *line, F
             command_print_shop(game, out);
         }
         return result == SHOP_OK ? COMMAND_RESULT_CONTINUE : COMMAND_RESULT_ERROR;
+    }
+
+    if (strcmp(command, "lock") == 0)
+    {
+        shop_set_locked(&game->player_shop, !game->player_shop.is_locked);
+        fprintf(out, "商店%s。\n", game->player_shop.is_locked ? "已锁定" : "已解锁");
+        command_print_shop(game, out);
+        return COMMAND_RESULT_CONTINUE;
     }
 
     if (strcmp(command, "buy") == 0)

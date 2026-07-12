@@ -25,10 +25,13 @@ typedef struct
 {
     ShopSlot slots[AUTOCHESS_SHOP_SIZE];
     unsigned int rng_state;
+    int is_locked;
 } Shop;
 
 void shop_init(Shop *shop, unsigned int seed);
 void shop_refresh(Shop *shop, int player_level);
+int shop_prepare_round(Shop *shop, int player_level);
+void shop_set_locked(Shop *shop, int is_locked);
 ShopResult shop_refresh_for_player(Shop *shop, Player *player);
 ShopResult shop_buy_slot(Shop *shop, Player *player, int slot_index, int instance_id);
 const char *shop_result_name(ShopResult result);

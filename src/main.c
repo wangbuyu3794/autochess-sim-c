@@ -154,10 +154,18 @@ static GameResult run_interactive_game(GameContext *game, const CliOptions *opti
     while (game->result == GAME_RESULT_ONGOING && game->current_round < options->max_rounds)
     {
         CommandResult command_result = COMMAND_RESULT_CONTINUE;
+        int gold_before_income = game->player.gold;
+        int income = economy_calculate_round_income(game->player.gold);
+        int refreshed = 0;
 
         printf("\n===== 第 %d 回合准备阶段 =====\n", game->current_round + 1);
         economy_apply_round_income(&game->player);
-        shop_refresh_for_player(&game->player_shop, &game->player);
+        refreshed = shop_prepare_round(&game->player_shop, game->player.level);
+        printf("收入结算：金币 %d + %d = %d；商店%s。\n",
+               gold_before_income,
+               income,
+               game->player.gold,
+               refreshed ? "已免费刷新" : "保留上回合锁定内容");
         command_print_roster(game, stdout);
         command_print_shop(game, stdout);
 

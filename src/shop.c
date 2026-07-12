@@ -90,6 +90,7 @@ void shop_init(Shop *shop, unsigned int seed)
     }
 
     shop->rng_state = seed == 0u ? 1u : seed;
+    shop->is_locked = 0;
 
     for (int i = 0; i < AUTOCHESS_SHOP_SIZE; ++i)
     {
@@ -105,12 +106,41 @@ void shop_refresh(Shop *shop, int player_level)
         return;
     }
 
+    shop->is_locked = 0;
+
     for (int i = 0; i < AUTOCHESS_SHOP_SIZE; ++i)
     {
         int cost = shop_pick_cost(shop, player_level);
         shop->slots[i].template_id = shop_pick_template_id_by_cost(shop, cost);
         shop->slots[i].is_available = shop->slots[i].template_id != 0;
     }
+}
+
+int shop_prepare_round(Shop *shop, int player_level)
+{
+    if (shop == 0)
+    {
+        return 0;
+    }
+
+    if (shop->is_locked)
+    {
+        shop->is_locked = 0;
+        return 0;
+    }
+
+    shop_refresh(shop, player_level);
+    return 1;
+}
+
+void shop_set_locked(Shop *shop, int is_locked)
+{
+    if (shop == 0)
+    {
+        return;
+    }
+
+    shop->is_locked = is_locked ? 1 : 0;
 }
 
 ShopResult shop_refresh_for_player(Shop *shop, Player *player)
