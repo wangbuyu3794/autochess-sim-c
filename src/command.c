@@ -280,6 +280,18 @@ static void command_print_trait_line(FILE *output, const TraitSummary *summary, 
     {
         fprintf(output, "，剑士攻击加成 +%d%%", trait_blademaster_attack_percent(summary));
     }
+    else if (trait == TRAIT_RANGER)
+    {
+        fprintf(output, "，游侠射程加成 +%d", trait_ranger_bonus_range(summary));
+    }
+    else if (trait == TRAIT_MAGE)
+    {
+        fprintf(output, "，法师初始法力 +%d", trait_mage_bonus_initial_mana(summary));
+    }
+    else if (trait == TRAIT_ELEMENT)
+    {
+        fprintf(output, "，元素生命加成 +%d", trait_element_bonus_hp(summary));
+    }
     else
     {
         fprintf(output, "，当前仅统计，暂未开放战斗加成");

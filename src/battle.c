@@ -97,6 +97,9 @@ void battle_apply_trait_summary(BattleContext *context)
         const TraitSummary *summary = unit->side == BATTLE_SIDE_PLAYER ? &player_summary : &enemy_summary;
         int guardian_hp = trait_guardian_bonus_hp(summary);
         int blademaster_attack_percent = trait_blademaster_attack_percent(summary);
+        int ranger_range = trait_ranger_bonus_range(summary);
+        int mage_initial_mana = trait_mage_bonus_initial_mana(summary);
+        int element_hp = trait_element_bonus_hp(summary);
 
         if (unit->class_trait == TRAIT_GUARDIAN && guardian_hp > 0)
         {
@@ -107,6 +110,22 @@ void battle_apply_trait_summary(BattleContext *context)
         if (unit->class_trait == TRAIT_BLADEMASTER && blademaster_attack_percent > 0)
         {
             unit->attack += (unit->attack * blademaster_attack_percent) / 100;
+        }
+
+        if (unit->class_trait == TRAIT_RANGER && ranger_range > 0)
+        {
+            unit->attack_range += ranger_range;
+        }
+
+        if (unit->class_trait == TRAIT_MAGE && mage_initial_mana > 0)
+        {
+            battle_gain_mana(unit, mage_initial_mana);
+        }
+
+        if (unit->origin_trait == TRAIT_ELEMENT && element_hp > 0)
+        {
+            unit->max_hp += element_hp;
+            unit->current_hp += element_hp;
         }
     }
 }

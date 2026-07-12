@@ -57,6 +57,21 @@ static void test_trait_thresholds(void)
     trait_summary_add(&summary, TRAIT_BLADEMASTER);
     EXPECT_EQ(15, trait_blademaster_attack_percent(&summary));
 
+    trait_summary_init(&summary);
+    trait_summary_add(&summary, TRAIT_RANGER);
+    trait_summary_add(&summary, TRAIT_RANGER);
+    EXPECT_EQ(1, trait_ranger_bonus_range(&summary));
+
+    trait_summary_init(&summary);
+    trait_summary_add(&summary, TRAIT_MAGE);
+    trait_summary_add(&summary, TRAIT_MAGE);
+    EXPECT_EQ(20, trait_mage_bonus_initial_mana(&summary));
+
+    trait_summary_init(&summary);
+    trait_summary_add(&summary, TRAIT_ELEMENT);
+    trait_summary_add(&summary, TRAIT_ELEMENT);
+    EXPECT_EQ(20, trait_element_bonus_hp(&summary));
+
     EXPECT_EQ(0, trait_current_threshold(1));
     EXPECT_EQ(2, trait_next_threshold(1));
     EXPECT_EQ(2, trait_current_threshold(2));
@@ -116,6 +131,51 @@ static void test_trait_bonus_does_not_cross_sides(void)
     EXPECT_EQ(140, context.units[1].max_hp);
 }
 
+static void test_ranger_bonus_applies_range(void)
+{
+    BattleContext context = {0};
+    BoardPosition p0 = {7, 2};
+    BoardPosition p1 = {7, 3};
+
+    battle_add_unit(&context, battle_create_unit_at(1, hero_get_template(3), BATTLE_SIDE_PLAYER, p0));
+    battle_add_unit(&context, battle_create_unit_at(2, hero_get_template(7), BATTLE_SIDE_PLAYER, p1));
+
+    battle_apply_trait_summary(&context);
+
+    EXPECT_EQ(4, context.units[0].attack_range);
+    EXPECT_EQ(4, context.units[1].attack_range);
+}
+
+static void test_mage_bonus_applies_initial_mana(void)
+{
+    BattleContext context = {0};
+    BoardPosition p0 = {7, 2};
+    BoardPosition p1 = {7, 3};
+
+    battle_add_unit(&context, battle_create_unit_at(1, hero_get_template(4), BATTLE_SIDE_PLAYER, p0));
+    battle_add_unit(&context, battle_create_unit_at(2, hero_get_template(8), BATTLE_SIDE_PLAYER, p1));
+
+    battle_apply_trait_summary(&context);
+
+    EXPECT_EQ(20, context.units[0].current_mana);
+    EXPECT_EQ(40, context.units[1].current_mana);
+}
+
+static void test_element_bonus_applies_hp(void)
+{
+    BattleContext context = {0};
+    BoardPosition p0 = {7, 2};
+    BoardPosition p1 = {7, 3};
+
+    battle_add_unit(&context, battle_create_unit_at(1, hero_get_template(6), BATTLE_SIDE_PLAYER, p0));
+    battle_add_unit(&context, battle_create_unit_at(2, hero_get_template(7), BATTLE_SIDE_PLAYER, p1));
+
+    battle_apply_trait_summary(&context);
+
+    EXPECT_EQ(160, context.units[0].max_hp);
+    EXPECT_EQ(135, context.units[1].max_hp);
+}
+
 int main(void)
 {
     test_trait_summary_counts_traits();
@@ -123,6 +183,9 @@ int main(void)
     test_guardian_bonus_applies_to_guardians_only();
     test_blademaster_bonus_applies_to_blademasters_only();
     test_trait_bonus_does_not_cross_sides();
+    test_ranger_bonus_applies_range();
+    test_mage_bonus_applies_initial_mana();
+    test_element_bonus_applies_hp();
 
     if (g_failed_tests == 0)
     {

@@ -454,6 +454,34 @@
 - `trait_current_threshold` 和 `trait_next_threshold` 提供档位解释；
 - 暂未开放效果的羁绊会明确提示“仅统计”。
 
+## V1.8 More Trait Effects
+
+目标：让更多羁绊真正影响战斗。
+
+包含：
+
+- 游侠射程加成；
+- 法师初始法力加成；
+- 元素生命加成；
+- `traits` 命令展示新增效果；
+- 羁绊效果测试。
+
+不包含：
+
+- 城邦效果；
+- 森林效果；
+- 暗影效果；
+- 持续光环；
+- 战斗中动态羁绊变化。
+
+学习重点：规则扩展、战斗前属性应用、效果测试。
+
+当前实现说明：
+
+- 新效果仍然在 `battle_apply_trait_summary` 中统一应用；
+- `trait` 模块提供对应数值 helper；
+- 命令层只读取 helper 显示说明。
+
 ## V2.0 Graphical Version
 
 目标：使用 raylib 制作图形版。

@@ -124,3 +124,54 @@ int trait_blademaster_attack_percent(const TraitSummary *summary)
 
     return 0;
 }
+
+int trait_ranger_bonus_range(const TraitSummary *summary)
+{
+    int count = trait_summary_get_count(summary, TRAIT_RANGER);
+
+    if (count >= 4)
+    {
+        return 2;
+    }
+
+    if (count >= 2)
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
+int trait_mage_bonus_initial_mana(const TraitSummary *summary)
+{
+    int count = trait_summary_get_count(summary, TRAIT_MAGE);
+
+    if (count >= 4)
+    {
+        return 40;
+    }
+
+    if (count >= 2)
+    {
+        return 20;
+    }
+
+    return 0;
+}
+
+int trait_element_bonus_hp(const TraitSummary *summary)
+{
+    int count = trait_summary_get_count(summary, TRAIT_ELEMENT);
+
+    if (count >= 4)
+    {
+        return 50;
+    }
+
+    if (count >= 2)
+    {
+        return 20;
+    }
+
+    return 0;
+}
