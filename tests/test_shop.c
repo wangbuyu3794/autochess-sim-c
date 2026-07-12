@@ -127,9 +127,17 @@ static void test_cost_probability_by_level(void)
 {
     EXPECT_EQ(70, shop_get_cost_probability(3, 1));
     EXPECT_EQ(30, shop_get_cost_probability(3, 2));
-    EXPECT_EQ(50, shop_get_cost_probability(4, 1));
-    EXPECT_EQ(65, shop_get_cost_probability(5, 2));
-    EXPECT_EQ(0, shop_get_cost_probability(5, 3));
+    EXPECT_EQ(55, shop_get_cost_probability(4, 1));
+    EXPECT_EQ(35, shop_get_cost_probability(5, 2));
+    EXPECT_EQ(20, shop_get_cost_probability(5, 3));
+    EXPECT_EQ(30, shop_get_cost_probability(8, 4));
+    EXPECT_EQ(0, shop_get_cost_probability(8, 5));
+}
+
+static void test_hero_pool_has_high_cost_units(void)
+{
+    EXPECT_TRUE(hero_get_first_template_by_cost(3) != 0);
+    EXPECT_TRUE(hero_get_first_template_by_cost(4) != 0);
 }
 
 int main(void)
@@ -142,6 +150,7 @@ int main(void)
     test_prepare_round_respects_lock();
     test_prepare_round_refreshes_when_unlocked();
     test_cost_probability_by_level();
+    test_hero_pool_has_high_cost_units();
 
     if (g_failed_tests == 0)
     {

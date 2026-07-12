@@ -191,7 +191,8 @@ static void command_print_shop_odds(const GameContext *game, FILE *output)
     fprintf(output, "等级 %d 商店概率：\n", game->player.level);
     fprintf(output, "  1费：%d%%\n", shop_get_cost_probability(game->player.level, 1));
     fprintf(output, "  2费：%d%%\n", shop_get_cost_probability(game->player.level, 2));
-    fprintf(output, "  3费及以上：当前英雄池暂未开放\n");
+    fprintf(output, "  3费：%d%%\n", shop_get_cost_probability(game->player.level, 3));
+    fprintf(output, "  4费：%d%%\n", shop_get_cost_probability(game->player.level, 4));
 }
 
 static void command_print_hero_pool(FILE *output)

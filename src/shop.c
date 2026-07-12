@@ -12,9 +12,18 @@ static unsigned int shop_next_random(Shop *shop)
 static int shop_pick_cost(Shop *shop, int player_level)
 {
     unsigned int roll = shop_next_random(shop) % 100u;
-    int one_cost_probability = shop_get_cost_probability(player_level, 1);
+    int cumulative = 0;
 
-    return roll < (unsigned int)one_cost_probability ? 1 : 2;
+    for (int cost = 1; cost <= 4; ++cost)
+    {
+        cumulative += shop_get_cost_probability(player_level, cost);
+        if (roll < (unsigned int)cumulative)
+        {
+            return cost;
+        }
+    }
+
+    return 1;
 }
 
 static int shop_pick_template_id_by_cost(Shop *shop, int cost)
@@ -60,40 +69,47 @@ static int shop_pick_template_id_by_cost(Shop *shop, int cost)
 
 int shop_get_cost_probability(int player_level, int cost)
 {
-    int one_cost_probability = 5;
+    static const int odds_by_level[][4] = {
+        {70, 30, 0, 0},
+        {55, 35, 10, 0},
+        {40, 35, 20, 5},
+        {25, 35, 30, 10},
+        {15, 30, 35, 20},
+        {10, 25, 35, 30},
+    };
+    int level_index = 0;
 
     if (player_level <= 3)
     {
-        one_cost_probability = 70;
+        level_index = 0;
     }
     else if (player_level == 4)
     {
-        one_cost_probability = 50;
+        level_index = 1;
     }
     else if (player_level == 5)
     {
-        one_cost_probability = 35;
+        level_index = 2;
     }
     else if (player_level == 6)
     {
-        one_cost_probability = 20;
+        level_index = 3;
     }
     else if (player_level == 7)
     {
-        one_cost_probability = 10;
+        level_index = 4;
     }
-
-    if (cost == 1)
+    else
     {
-        return one_cost_probability;
+        level_index = 5;
     }
 
-    if (cost == 2)
+    if (cost < 1 || cost > 4)
     {
-        return 100 - one_cost_probability;
+        return 0;
     }
 
-    return 0;
+    return odds_by_level[level_index][cost - 1];
 }
 
 void shop_init(Shop *shop, unsigned int seed)
