@@ -13,7 +13,7 @@
 
 ## 当前阶段
 
-当前处于 `V0.9 Full Match Loop` 阶段。
+当前处于 `V1.0 Terminal Release` 阶段，第一阶段终端版已经形成可运行的完整模拟。
 
 第一批文档用于确定项目边界、版本路线和协作规则：
 
@@ -24,7 +24,7 @@
 
 ## 近期目标
 
-`V0.9 Full Match Loop` 的目标：
+`V1.0 Terminal Release` 已包含：
 
 - 创建基础 CMake 工程；
 - 定义英雄和战斗单位结构；
@@ -38,6 +38,7 @@
 - 加入法力值、普攻回蓝和技能释放；
 - 加入电脑玩家自动刷新、购买和部署；
 - 加入多回合对局、胜负扣血和游戏结束判断；
+- 支持命令行帮助、版本号、自定义随机种子、自定义最大回合和静默运行；
 - 将玩家拥有的单位复制为战斗临时单位；
 - 实现距离优先目标选择、普通攻击、死亡判断和胜负判断；
 - 输出中文战斗日志；
@@ -61,6 +62,18 @@ ctest --test-dir build-mingw
 .\build-mingw\autochess.exe
 ```
 
+查看可用运行参数：
+
+```powershell
+.\build-mingw\autochess.exe --help
+```
+
+示例：使用固定随机种子，最多运行 10 回合，并只输出最终结果。
+
+```powershell
+.\build-mingw\autochess.exe --player-seed 123 --enemy-seed 456 --rounds 10 --quiet
+```
+
 在 Visual Studio 生成器中，最后一步通常是：
 
 ```powershell
@@ -69,13 +82,16 @@ ctest --test-dir build-mingw
 
 ## 项目边界
 
-终端版 `V1.0` 之前暂不做：
+当前终端版暂不做：
 
 - 联网对战；
 - 八人真实匹配；
 - 排位系统；
 - 复杂装备系统；
 - 复杂强化符文；
+- 交互式命令系统；
+- 保存/读取；
+- 外部数据文件驱动；
 - 商业级平衡性；
 - 图形界面。
 

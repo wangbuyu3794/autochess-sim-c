@@ -4,7 +4,7 @@ void logger_battle_start(FILE *stream)
 {
     if (stream != NULL)
     {
-        fprintf(stream, "自走棋模拟 - V0.7 法力技能战斗模拟器\n\n");
+        fprintf(stream, "战斗开始\n");
     }
 }
 

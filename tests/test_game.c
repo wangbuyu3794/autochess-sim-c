@@ -108,6 +108,19 @@ static void test_game_run_until_over_finishes(void)
     EXPECT_TRUE(game.current_round <= AUTOCHESS_MAX_GAME_ROUNDS);
 }
 
+static void test_game_run_until_over_with_custom_limit(void)
+{
+    GameContext game;
+    GameResult result = GAME_RESULT_ONGOING;
+    game_init(&game, 1u, 2u);
+    game_seed_player_demo_units(&game);
+
+    result = game_run_until_over_with_limit(&game, 1, NULL);
+
+    EXPECT_EQ(GAME_RESULT_DRAW, result);
+    EXPECT_EQ(1, game.current_round);
+}
+
 int main(void)
 {
     test_game_init_sets_defaults();
@@ -116,6 +129,7 @@ int main(void)
     test_settle_battle_reduces_loser_health();
     test_game_run_round_advances_round();
     test_game_run_until_over_finishes();
+    test_game_run_until_over_with_custom_limit();
 
     if (g_failed_tests == 0)
     {

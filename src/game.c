@@ -2,7 +2,72 @@
 
 #include "ai.h"
 #include "economy.h"
+#include "hero.h"
 #include "unit.h"
+
+static void game_log_player_summary(FILE *log_stream, const char *label, const Player *player)
+{
+    if (log_stream == 0 || label == 0 || player == 0)
+    {
+        return;
+    }
+
+    fprintf(log_stream,
+            "%s：生命 %d，金币 %d，等级 %d，经验 %d，已上场 %d/%d，拥有单位 %d\n",
+            label,
+            player->health,
+            player->gold,
+            player->level,
+            player->experience,
+            player_count_deployed_units(player),
+            player->level,
+            player_count_active_units(player));
+}
+
+static void game_log_deployed_units(FILE *log_stream, const char *label, const Player *player)
+{
+    int printed = 0;
+
+    if (log_stream == 0 || label == 0 || player == 0)
+    {
+        return;
+    }
+
+    fprintf(log_stream, "%s阵容：", label);
+
+    for (int i = 0; i < player->unit_count; ++i)
+    {
+        const Unit *unit = &player->units[i];
+        const HeroTemplate *hero = 0;
+
+        if (!unit->is_active || !unit_is_deployed(unit))
+        {
+            continue;
+        }
+
+        hero = hero_get_template(unit->template_id);
+        if (hero == 0)
+        {
+            continue;
+        }
+
+        fprintf(log_stream,
+                "%s%s %d星(%d,%d)",
+                printed ? "，" : "",
+                hero->name,
+                unit->star,
+                unit->position.row,
+                unit->position.col);
+        printed = 1;
+    }
+
+    if (!printed)
+    {
+        fprintf(log_stream, "无");
+    }
+
+    fprintf(log_stream, "\n");
+}
 
 static void game_prepare_context(GameContext *game, BattleContext *battle_context)
 {
@@ -135,6 +200,10 @@ BattleResult game_run_round(GameContext *game, FILE *log_stream)
     if (log_stream != 0)
     {
         fprintf(log_stream, "\n===== 第 %d 回合 =====\n", game->current_round);
+        game_log_player_summary(log_stream, "玩家", &game->player);
+        game_log_player_summary(log_stream, "敌方", &game->enemy);
+        game_log_deployed_units(log_stream, "玩家", &game->player);
+        game_log_deployed_units(log_stream, "敌方", &game->enemy);
     }
 
     battle_result = battle_run(&battle_context, log_stream);
@@ -150,12 +219,28 @@ BattleResult game_run_round(GameContext *game, FILE *log_stream)
 
 GameResult game_run_until_over(GameContext *game, FILE *log_stream)
 {
+    return game_run_until_over_with_limit(game, AUTOCHESS_MAX_GAME_ROUNDS, log_stream);
+}
+
+GameResult game_run_until_over_with_limit(GameContext *game, int max_rounds, FILE *log_stream)
+{
     if (game == 0)
     {
         return GAME_RESULT_DRAW;
     }
 
-    while (game->result == GAME_RESULT_ONGOING && game->current_round < AUTOCHESS_MAX_GAME_ROUNDS)
+    if (max_rounds <= 0)
+    {
+        max_rounds = AUTOCHESS_MAX_GAME_ROUNDS;
+    }
+
+    if (log_stream != 0)
+    {
+        fprintf(log_stream, "自走棋模拟 V%s\n", AUTOCHESS_VERSION);
+        fprintf(log_stream, "模式：单机玩家 VS 电脑 AI，最大回合数 %d\n", max_rounds);
+    }
+
+    while (game->result == GAME_RESULT_ONGOING && game->current_round < max_rounds)
     {
         game_run_round(game, log_stream);
     }

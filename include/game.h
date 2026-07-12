@@ -33,6 +33,7 @@ int game_calculate_damage(const BattleContext *battle_context, BattleSide winner
 GameResult game_settle_battle(GameContext *game, const BattleContext *battle_context, BattleResult battle_result);
 BattleResult game_run_round(GameContext *game, FILE *log_stream);
 GameResult game_run_until_over(GameContext *game, FILE *log_stream);
+GameResult game_run_until_over_with_limit(GameContext *game, int max_rounds, FILE *log_stream);
 const char *game_result_name(GameResult result);
 
 #endif
