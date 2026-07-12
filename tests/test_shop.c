@@ -123,6 +123,15 @@ static void test_prepare_round_refreshes_when_unlocked(void)
     }
 }
 
+static void test_cost_probability_by_level(void)
+{
+    EXPECT_EQ(70, shop_get_cost_probability(3, 1));
+    EXPECT_EQ(30, shop_get_cost_probability(3, 2));
+    EXPECT_EQ(50, shop_get_cost_probability(4, 1));
+    EXPECT_EQ(65, shop_get_cost_probability(5, 2));
+    EXPECT_EQ(0, shop_get_cost_probability(5, 3));
+}
+
 int main(void)
 {
     test_refresh_fills_shop();
@@ -132,6 +141,7 @@ int main(void)
     test_buy_rejects_not_enough_gold();
     test_prepare_round_respects_lock();
     test_prepare_round_refreshes_when_unlocked();
+    test_cost_probability_by_level();
 
     if (g_failed_tests == 0)
     {

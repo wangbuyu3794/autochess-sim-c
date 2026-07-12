@@ -28,6 +28,7 @@ typedef struct
     int is_locked;
 } Shop;
 
+int shop_get_cost_probability(int player_level, int cost);
 void shop_init(Shop *shop, unsigned int seed);
 void shop_refresh(Shop *shop, int player_level);
 int shop_prepare_round(Shop *shop, int player_level);

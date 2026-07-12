@@ -62,6 +62,15 @@ static void test_lock_command_toggles_shop_lock(void)
     EXPECT_EQ(0, game.player_shop.is_locked);
 }
 
+static void test_odds_and_pool_commands(void)
+{
+    GameContext game;
+    game_init(&game, 1u, 2u);
+
+    EXPECT_EQ(COMMAND_RESULT_CONTINUE, command_execute_preparation(&game, "odds", NULL));
+    EXPECT_EQ(COMMAND_RESULT_CONTINUE, command_execute_preparation(&game, "pool", NULL));
+}
+
 static void test_buyxp_command_spends_gold_and_levels_up(void)
 {
     GameContext game;
@@ -188,6 +197,7 @@ int main(void)
     test_buy_command_adds_unit();
     test_refresh_command_costs_gold();
     test_lock_command_toggles_shop_lock();
+    test_odds_and_pool_commands();
     test_buyxp_command_spends_gold_and_levels_up();
     test_auto_command_deploys_units();
     test_deploy_command_places_bench_unit();

@@ -12,33 +12,9 @@ static unsigned int shop_next_random(Shop *shop)
 static int shop_pick_cost(Shop *shop, int player_level)
 {
     unsigned int roll = shop_next_random(shop) % 100u;
+    int one_cost_probability = shop_get_cost_probability(player_level, 1);
 
-    if (player_level <= 3)
-    {
-        return roll < 70u ? 1 : 2;
-    }
-
-    if (player_level == 4)
-    {
-        return roll < 50u ? 1 : 2;
-    }
-
-    if (player_level == 5)
-    {
-        return roll < 35u ? 1 : 2;
-    }
-
-    if (player_level == 6)
-    {
-        return roll < 20u ? 1 : 2;
-    }
-
-    if (player_level == 7)
-    {
-        return roll < 10u ? 1 : 2;
-    }
-
-    return roll < 5u ? 1 : 2;
+    return roll < (unsigned int)one_cost_probability ? 1 : 2;
 }
 
 static int shop_pick_template_id_by_cost(Shop *shop, int cost)
@@ -77,6 +53,44 @@ static int shop_pick_template_id_by_cost(Shop *shop, int cost)
 
             selected_index -= 1;
         }
+    }
+
+    return 0;
+}
+
+int shop_get_cost_probability(int player_level, int cost)
+{
+    int one_cost_probability = 5;
+
+    if (player_level <= 3)
+    {
+        one_cost_probability = 70;
+    }
+    else if (player_level == 4)
+    {
+        one_cost_probability = 50;
+    }
+    else if (player_level == 5)
+    {
+        one_cost_probability = 35;
+    }
+    else if (player_level == 6)
+    {
+        one_cost_probability = 20;
+    }
+    else if (player_level == 7)
+    {
+        one_cost_probability = 10;
+    }
+
+    if (cost == 1)
+    {
+        return one_cost_probability;
+    }
+
+    if (cost == 2)
+    {
+        return 100 - one_cost_probability;
     }
 
     return 0;

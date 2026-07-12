@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- 进入 `V1.5 Shop Odds And Hero Pool`。
+- 项目版本号升级为 `1.5.0`。
+- 新增 `shop_get_cost_probability`，商店抽卡和展示共用同一套概率表。
+- 准备阶段新增 `odds`，显示当前等级商店概率。
+- 准备阶段新增 `pool`，显示当前英雄池。
+- 命令测试和商店测试覆盖概率与展示命令。
 - 进入 `V1.4 Shop Lock And Round UX`。
 - 项目版本号升级为 `1.4.0`。
 - `Shop` 新增锁定状态。

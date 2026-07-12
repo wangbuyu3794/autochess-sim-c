@@ -135,6 +135,8 @@ void command_print_help(FILE *output)
     fprintf(output, "  help       查看命令\n");
     fprintf(output, "  status     查看玩家状态\n");
     fprintf(output, "  shop       查看商店\n");
+    fprintf(output, "  odds       查看当前等级商店概率\n");
+    fprintf(output, "  pool       查看当前英雄池\n");
     fprintf(output, "  bench      查看备战席和已上场单位\n");
     fprintf(output, "  buy <1-5>  购买商店中的英雄\n");
     fprintf(output, "  sell <编号>  出售单位，例如 sell 0\n");
@@ -176,6 +178,44 @@ void command_print_shop(const GameContext *game, FILE *output)
                 hero->base_hp,
                 hero->base_attack,
                 hero->attack_range);
+    }
+}
+
+static void command_print_shop_odds(const GameContext *game, FILE *output)
+{
+    if (game == 0 || output == 0)
+    {
+        return;
+    }
+
+    fprintf(output, "等级 %d 商店概率：\n", game->player.level);
+    fprintf(output, "  1费：%d%%\n", shop_get_cost_probability(game->player.level, 1));
+    fprintf(output, "  2费：%d%%\n", shop_get_cost_probability(game->player.level, 2));
+    fprintf(output, "  3费及以上：当前英雄池暂未开放\n");
+}
+
+static void command_print_hero_pool(FILE *output)
+{
+    const HeroTemplate *templates = 0;
+    size_t count = 0;
+
+    if (output == 0)
+    {
+        return;
+    }
+
+    templates = hero_get_templates(&count);
+    fprintf(output, "英雄池：\n");
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        fprintf(output,
+                "  %s：%d费，生命 %d，攻击 %d，射程 %d\n",
+                templates[i].name,
+                templates[i].cost,
+                templates[i].base_hp,
+                templates[i].base_attack,
+                templates[i].attack_range);
     }
 }
 
@@ -261,6 +301,18 @@ CommandResult command_execute_preparation(GameContext *game, const char *line, F
     if (strcmp(command, "shop") == 0)
     {
         command_print_shop(game, out);
+        return COMMAND_RESULT_CONTINUE;
+    }
+
+    if (strcmp(command, "odds") == 0)
+    {
+        command_print_shop_odds(game, out);
+        return COMMAND_RESULT_CONTINUE;
+    }
+
+    if (strcmp(command, "pool") == 0)
+    {
+        command_print_hero_pool(out);
         return COMMAND_RESULT_CONTINUE;
     }
 
