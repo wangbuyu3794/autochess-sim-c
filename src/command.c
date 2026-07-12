@@ -137,6 +137,7 @@ void command_print_help(FILE *output)
     fprintf(output, "  shop       查看商店\n");
     fprintf(output, "  odds       查看当前等级商店概率\n");
     fprintf(output, "  pool       查看当前英雄池\n");
+    fprintf(output, "  traits     查看当前上场阵容羁绊\n");
     fprintf(output, "  bench      查看备战席和已上场单位\n");
     fprintf(output, "  buy <1-5>  购买商店中的英雄\n");
     fprintf(output, "  sell <编号>  出售单位，例如 sell 0\n");
@@ -217,6 +218,102 @@ static void command_print_hero_pool(FILE *output)
                 templates[i].base_hp,
                 templates[i].base_attack,
                 templates[i].attack_range);
+    }
+}
+
+static void command_build_deployed_trait_summary(const Player *player, TraitSummary *summary)
+{
+    if (player == 0 || summary == 0)
+    {
+        return;
+    }
+
+    trait_summary_init(summary);
+
+    for (int i = 0; i < player->unit_count; ++i)
+    {
+        const Unit *unit = &player->units[i];
+        const HeroTemplate *hero = 0;
+
+        if (!unit->is_active || !unit_is_deployed(unit))
+        {
+            continue;
+        }
+
+        hero = hero_get_template(unit->template_id);
+        if (hero == 0)
+        {
+            continue;
+        }
+
+        trait_summary_add(summary, hero->class_trait);
+        trait_summary_add(summary, hero->origin_trait);
+    }
+}
+
+static void command_print_trait_line(FILE *output, const TraitSummary *summary, TraitId trait)
+{
+    int count = trait_summary_get_count(summary, trait);
+    int current = trait_current_threshold(count);
+    int next = trait_next_threshold(count);
+
+    if (output == 0 || summary == 0 || count <= 0)
+    {
+        return;
+    }
+
+    fprintf(output, "  %s：%d 个", trait_name(trait), count);
+    if (current > 0)
+    {
+        fprintf(output, "，已触发 %d", current);
+    }
+    if (next > 0)
+    {
+        fprintf(output, "，距离 %d 还差 %d", next, next - count);
+    }
+
+    if (trait == TRAIT_GUARDIAN)
+    {
+        fprintf(output, "，守卫生命加成 +%d", trait_guardian_bonus_hp(summary));
+    }
+    else if (trait == TRAIT_BLADEMASTER)
+    {
+        fprintf(output, "，剑士攻击加成 +%d%%", trait_blademaster_attack_percent(summary));
+    }
+    else
+    {
+        fprintf(output, "，当前仅统计，暂未开放战斗加成");
+    }
+
+    fprintf(output, "\n");
+}
+
+static void command_print_traits(const GameContext *game, FILE *output)
+{
+    TraitSummary summary;
+    int printed = 0;
+
+    if (game == 0 || output == 0)
+    {
+        return;
+    }
+
+    command_build_deployed_trait_summary(&game->player, &summary);
+    fprintf(output, "当前上场羁绊：\n");
+
+    for (int trait = TRAIT_GUARDIAN; trait <= TRAIT_SHADOW; ++trait)
+    {
+        int count = trait_summary_get_count(&summary, (TraitId)trait);
+        if (count > 0)
+        {
+            command_print_trait_line(output, &summary, (TraitId)trait);
+            printed = 1;
+        }
+    }
+
+    if (!printed)
+    {
+        fprintf(output, "  暂无已上场单位。\n");
     }
 }
 
@@ -314,6 +411,12 @@ CommandResult command_execute_preparation(GameContext *game, const char *line, F
     if (strcmp(command, "pool") == 0)
     {
         command_print_hero_pool(out);
+        return COMMAND_RESULT_CONTINUE;
+    }
+
+    if (strcmp(command, "traits") == 0)
+    {
+        command_print_traits(game, out);
         return COMMAND_RESULT_CONTINUE;
     }
 

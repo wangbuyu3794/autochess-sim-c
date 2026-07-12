@@ -61,6 +61,36 @@ int trait_summary_get_count(const TraitSummary *summary, TraitId trait)
     return summary->counts[trait];
 }
 
+int trait_current_threshold(int count)
+{
+    if (count >= 4)
+    {
+        return 4;
+    }
+
+    if (count >= 2)
+    {
+        return 2;
+    }
+
+    return 0;
+}
+
+int trait_next_threshold(int count)
+{
+    if (count < 2)
+    {
+        return 2;
+    }
+
+    if (count < 4)
+    {
+        return 4;
+    }
+
+    return 0;
+}
+
 int trait_guardian_bonus_hp(const TraitSummary *summary)
 {
     int count = trait_summary_get_count(summary, TRAIT_GUARDIAN);

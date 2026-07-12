@@ -56,6 +56,13 @@ static void test_trait_thresholds(void)
     trait_summary_add(&summary, TRAIT_BLADEMASTER);
     trait_summary_add(&summary, TRAIT_BLADEMASTER);
     EXPECT_EQ(15, trait_blademaster_attack_percent(&summary));
+
+    EXPECT_EQ(0, trait_current_threshold(1));
+    EXPECT_EQ(2, trait_next_threshold(1));
+    EXPECT_EQ(2, trait_current_threshold(2));
+    EXPECT_EQ(4, trait_next_threshold(2));
+    EXPECT_EQ(4, trait_current_threshold(4));
+    EXPECT_EQ(0, trait_next_threshold(4));
 }
 
 static void test_guardian_bonus_applies_to_guardians_only(void)

@@ -25,6 +25,8 @@ const char *trait_name(TraitId trait);
 void trait_summary_init(TraitSummary *summary);
 void trait_summary_add(TraitSummary *summary, TraitId trait);
 int trait_summary_get_count(const TraitSummary *summary, TraitId trait);
+int trait_current_threshold(int count);
+int trait_next_threshold(int count);
 int trait_guardian_bonus_hp(const TraitSummary *summary);
 int trait_blademaster_attack_percent(const TraitSummary *summary);
 
