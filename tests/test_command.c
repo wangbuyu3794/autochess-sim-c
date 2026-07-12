@@ -62,6 +62,55 @@ static void test_auto_command_deploys_units(void)
     EXPECT_EQ(1, player_count_deployed_units(&game.player));
 }
 
+static void test_deploy_command_places_bench_unit(void)
+{
+    GameContext game;
+    game_init(&game, 1u, 2u);
+    shop_refresh(&game.player_shop, game.player.level);
+    command_execute_preparation(&game, "buy 1", NULL);
+
+    EXPECT_EQ(COMMAND_RESULT_CONTINUE, command_execute_preparation(&game, "deploy 1 6 3", NULL));
+    EXPECT_EQ(1, player_count_deployed_units(&game.player));
+    EXPECT_TRUE(player_is_position_occupied(&game.player, (BoardPosition){6, 3}));
+}
+
+static void test_move_command_moves_deployed_unit(void)
+{
+    GameContext game;
+    game_init(&game, 1u, 2u);
+    shop_refresh(&game.player_shop, game.player.level);
+    command_execute_preparation(&game, "buy 1", NULL);
+    command_execute_preparation(&game, "deploy 1 6 3", NULL);
+
+    EXPECT_EQ(COMMAND_RESULT_CONTINUE, command_execute_preparation(&game, "move 6 3 7 3", NULL));
+    EXPECT_TRUE(!player_is_position_occupied(&game.player, (BoardPosition){6, 3}));
+    EXPECT_TRUE(player_is_position_occupied(&game.player, (BoardPosition){7, 3}));
+}
+
+static void test_recall_command_returns_unit_to_bench(void)
+{
+    GameContext game;
+    game_init(&game, 1u, 2u);
+    shop_refresh(&game.player_shop, game.player.level);
+    command_execute_preparation(&game, "buy 1", NULL);
+    command_execute_preparation(&game, "deploy 1 6 3", NULL);
+
+    EXPECT_EQ(COMMAND_RESULT_CONTINUE, command_execute_preparation(&game, "recall 6 3", NULL));
+    EXPECT_EQ(0, player_count_deployed_units(&game.player));
+    EXPECT_TRUE(player_count_active_units(&game.player) == 1);
+}
+
+static void test_deploy_rejects_enemy_side(void)
+{
+    GameContext game;
+    game_init(&game, 1u, 2u);
+    shop_refresh(&game.player_shop, game.player.level);
+    command_execute_preparation(&game, "buy 1", NULL);
+
+    EXPECT_EQ(COMMAND_RESULT_ERROR, command_execute_preparation(&game, "deploy 1 0 3", NULL));
+    EXPECT_EQ(0, player_count_deployed_units(&game.player));
+}
+
 static void test_ready_and_quit_commands(void)
 {
     GameContext game;
@@ -93,6 +142,10 @@ int main(void)
     test_buy_command_adds_unit();
     test_refresh_command_costs_gold();
     test_auto_command_deploys_units();
+    test_deploy_command_places_bench_unit();
+    test_move_command_moves_deployed_unit();
+    test_recall_command_returns_unit_to_bench();
+    test_deploy_rejects_enemy_side();
     test_ready_and_quit_commands();
     test_command_accepts_utf8_bom();
     test_invalid_buy_reports_error();

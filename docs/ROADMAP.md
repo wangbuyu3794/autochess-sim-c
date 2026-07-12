@@ -285,6 +285,35 @@
 - 自动部署仍然调用 `ai` 模块；
 - 交互模式每回合由玩家准备、敌方 AI 准备、战斗结算组成。
 
+## V1.2 Manual Deployment
+
+目标：让玩家能控制基础站位。
+
+包含：
+
+- `deploy <备战席> <行> <列>`；
+- `move <旧行> <旧列> <新行> <新列>`；
+- `recall <行> <列>`；
+- 命令错误提示；
+- 非法部署测试。
+
+不包含：
+
+- 出售单位；
+- 锁定商店；
+- 装备；
+- 完整手动运营 AI 对抗；
+- 保存和读取。
+
+学习重点：多参数命令解析、坐标校验、复用模块规则、边界测试。
+
+当前实现说明：
+
+- `deploy` 调用 `player_deploy_from_bench`；
+- `move` 调用 `player_move_deployed_unit`；
+- `recall` 调用 `player_return_unit_to_bench`；
+- 所有命令都会复用 `player_result_name` 输出中文结果。
+
 ## V2.0 Graphical Version
 
 目标：使用 raylib 制作图形版。

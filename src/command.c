@@ -51,6 +51,43 @@ static int command_parse_slot(const char *text, int *slot_index)
     return 1;
 }
 
+static int command_parse_int(const char *text, int *value)
+{
+    char *end = 0;
+    long parsed = 0;
+
+    if (text == 0 || value == 0)
+    {
+        return 0;
+    }
+
+    parsed = strtol(text, &end, 10);
+    if (*text == '\0' || *end != '\0' || parsed < -1000 || parsed > 1000)
+    {
+        return 0;
+    }
+
+    *value = (int)parsed;
+    return 1;
+}
+
+static int command_parse_position(const char *row_text, const char *col_text, BoardPosition *position)
+{
+    int row = 0;
+    int col = 0;
+
+    if (position == 0 ||
+        !command_parse_int(row_text, &row) ||
+        !command_parse_int(col_text, &col))
+    {
+        return 0;
+    }
+
+    position->row = row;
+    position->col = col;
+    return 1;
+}
+
 static void command_print_unit_line(FILE *output, int index, const Unit *unit)
 {
     const HeroTemplate *hero = 0;
@@ -101,6 +138,9 @@ void command_print_help(FILE *output)
     fprintf(output, "  bench      查看备战席和已上场单位\n");
     fprintf(output, "  buy <1-5>  购买商店中的英雄\n");
     fprintf(output, "  refresh    花费 %d 金币刷新商店\n", AUTOCHESS_REFRESH_COST);
+    fprintf(output, "  deploy <备战席> <行> <列>  部署备战席单位，例如 deploy 1 6 3\n");
+    fprintf(output, "  move <旧行> <旧列> <新行> <新列>  移动已上场单位\n");
+    fprintf(output, "  recall <行> <列>  撤回指定坐标上的单位\n");
     fprintf(output, "  auto       自动部署当前最强单位\n");
     fprintf(output, "  ready      结束准备并进入战斗\n");
     fprintf(output, "  quit       退出本局\n");
@@ -254,6 +294,76 @@ CommandResult command_execute_preparation(GameContext *game, const char *line, F
             game->player_next_instance_id += 1;
         }
         return result == SHOP_OK ? COMMAND_RESULT_CONTINUE : COMMAND_RESULT_ERROR;
+    }
+
+    if (strcmp(command, "deploy") == 0)
+    {
+        char *row_text = strtok(0, " \t");
+        char *col_text = strtok(0, " \t");
+        int bench_index = -1;
+        BoardPosition position = {0, 0};
+        PlayerResult result = PLAYER_OK;
+
+        if (!command_parse_slot(argument, &bench_index) ||
+            !command_parse_position(row_text, col_text, &position))
+        {
+            fprintf(out, "部署失败：请输入 deploy <备战席1-9> <行> <列>。\n");
+            return COMMAND_RESULT_ERROR;
+        }
+
+        result = player_deploy_from_bench(&game->player, bench_index, position);
+        fprintf(out, "部署结果：%s\n", player_result_name(result));
+        if (result == PLAYER_OK)
+        {
+            command_print_roster(game, out);
+        }
+        return result == PLAYER_OK ? COMMAND_RESULT_CONTINUE : COMMAND_RESULT_ERROR;
+    }
+
+    if (strcmp(command, "move") == 0)
+    {
+        char *from_col_text = strtok(0, " \t");
+        char *to_row_text = strtok(0, " \t");
+        char *to_col_text = strtok(0, " \t");
+        BoardPosition from = {0, 0};
+        BoardPosition to = {0, 0};
+        PlayerResult result = PLAYER_OK;
+
+        if (!command_parse_position(argument, from_col_text, &from) ||
+            !command_parse_position(to_row_text, to_col_text, &to))
+        {
+            fprintf(out, "移动失败：请输入 move <旧行> <旧列> <新行> <新列>。\n");
+            return COMMAND_RESULT_ERROR;
+        }
+
+        result = player_move_deployed_unit(&game->player, from, to);
+        fprintf(out, "移动结果：%s\n", player_result_name(result));
+        if (result == PLAYER_OK)
+        {
+            command_print_roster(game, out);
+        }
+        return result == PLAYER_OK ? COMMAND_RESULT_CONTINUE : COMMAND_RESULT_ERROR;
+    }
+
+    if (strcmp(command, "recall") == 0)
+    {
+        char *col_text = strtok(0, " \t");
+        BoardPosition position = {0, 0};
+        PlayerResult result = PLAYER_OK;
+
+        if (!command_parse_position(argument, col_text, &position))
+        {
+            fprintf(out, "撤回失败：请输入 recall <行> <列>。\n");
+            return COMMAND_RESULT_ERROR;
+        }
+
+        result = player_return_unit_to_bench(&game->player, position);
+        fprintf(out, "撤回结果：%s\n", player_result_name(result));
+        if (result == PLAYER_OK)
+        {
+            command_print_roster(game, out);
+        }
+        return result == PLAYER_OK ? COMMAND_RESULT_CONTINUE : COMMAND_RESULT_ERROR;
     }
 
     if (strcmp(command, "auto") == 0)
