@@ -49,6 +49,43 @@ static void test_mana_gain_is_capped(void)
     EXPECT_EQ(unit.max_mana, unit.current_mana);
 }
 
+static void test_skill_definitions_are_available(void)
+{
+    const SkillDefinition *shield = skill_get_definition(SKILL_IRON_SHIELD);
+    const SkillDefinition *strike = skill_get_definition(SKILL_POWER_STRIKE);
+    const SkillDefinition *fireball = skill_get_definition(SKILL_FIREBALL);
+
+    EXPECT_TRUE(shield != 0);
+    EXPECT_TRUE(strike != 0);
+    EXPECT_TRUE(fireball != 0);
+    EXPECT_EQ(SKILL_TARGET_SELF, shield->target_type);
+    EXPECT_EQ(SKILL_DAMAGE_PHYSICAL, strike->damage_type);
+    EXPECT_EQ(SKILL_DAMAGE_MAGICAL, fireball->damage_type);
+}
+
+static void test_skill_definition_calculates_physical_damage(void)
+{
+    BattleContext context = make_context_with_two_units(2, 1);
+    const SkillDefinition *definition = skill_get_definition(SKILL_POWER_STRIKE);
+
+    EXPECT_EQ(20, skill_calculate_damage(definition, &context.units[0], &context.units[1]));
+}
+
+static void test_skill_definition_calculates_magical_damage(void)
+{
+    BattleContext context = make_context_with_two_units(4, 1);
+    const SkillDefinition *definition = skill_get_definition(SKILL_FIREBALL);
+
+    EXPECT_EQ(40, skill_calculate_damage(definition, &context.units[0], &context.units[1]));
+}
+
+static void test_skill_definition_calculates_healing(void)
+{
+    const SkillDefinition *definition = skill_get_definition(SKILL_IRON_SHIELD);
+
+    EXPECT_EQ(35, skill_calculate_healing(definition));
+}
+
 static void test_fireball_deals_damage_and_resets_mana(void)
 {
     BattleContext context = make_context_with_two_units(4, 1);
@@ -99,6 +136,10 @@ static void test_battle_attack_gains_mana_and_eventually_casts(void)
 int main(void)
 {
     test_mana_gain_is_capped();
+    test_skill_definitions_are_available();
+    test_skill_definition_calculates_physical_damage();
+    test_skill_definition_calculates_magical_damage();
+    test_skill_definition_calculates_healing();
     test_fireball_deals_damage_and_resets_mana();
     test_iron_shield_heals_self_and_resets_mana();
     test_skill_does_not_cast_without_full_mana();

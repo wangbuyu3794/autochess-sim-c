@@ -3,22 +3,66 @@
 #include "battle.h"
 #include "logger.h"
 
+static const SkillDefinition SKILL_DEFINITIONS[] = {
+    {SKILL_IRON_SHIELD, "铁壁护盾", SKILL_DAMAGE_NONE, SKILL_TARGET_SELF, 0, 0, 35},
+    {SKILL_POWER_STRIKE, "破势斩", SKILL_DAMAGE_PHYSICAL, SKILL_TARGET_ENEMY, 0, 100, 0},
+    {SKILL_QUICK_SHOT, "连珠箭", SKILL_DAMAGE_PHYSICAL, SKILL_TARGET_ENEMY, 30, 0, 0},
+    {SKILL_FIREBALL, "火球术", SKILL_DAMAGE_MAGICAL, SKILL_TARGET_ENEMY, 45, 0, 0},
+};
+
 const char *skill_name(SkillId skill_id)
 {
-    switch (skill_id)
+    const SkillDefinition *definition = skill_get_definition(skill_id);
+
+    return definition != 0 ? definition->name : "无技能";
+}
+
+const SkillDefinition *skill_get_definition(SkillId skill_id)
+{
+    int count = (int)(sizeof(SKILL_DEFINITIONS) / sizeof(SKILL_DEFINITIONS[0]));
+
+    for (int i = 0; i < count; ++i)
     {
-    case SKILL_IRON_SHIELD:
-        return "铁壁护盾";
-    case SKILL_POWER_STRIKE:
-        return "破势斩";
-    case SKILL_QUICK_SHOT:
-        return "连珠箭";
-    case SKILL_FIREBALL:
-        return "火球术";
-    case SKILL_NONE:
-    default:
-        return "无技能";
+        if (SKILL_DEFINITIONS[i].id == skill_id)
+        {
+            return &SKILL_DEFINITIONS[i];
+        }
     }
+
+    return 0;
+}
+
+int skill_calculate_damage(const SkillDefinition *definition, const BattleUnit *caster, const BattleUnit *target)
+{
+    int raw_damage = 0;
+
+    if (definition == 0 || caster == 0 || target == 0)
+    {
+        return 0;
+    }
+
+    raw_damage = definition->base_damage + (caster->attack * definition->attack_percent) / 100;
+    if (raw_damage <= 0)
+    {
+        return 0;
+    }
+
+    if (definition->damage_type == SKILL_DAMAGE_PHYSICAL)
+    {
+        return battle_calculate_mitigated_damage(raw_damage, target->armor);
+    }
+
+    if (definition->damage_type == SKILL_DAMAGE_MAGICAL)
+    {
+        return battle_calculate_spell_damage(raw_damage, target);
+    }
+
+    return 0;
+}
+
+int skill_calculate_healing(const SkillDefinition *definition)
+{
+    return definition != 0 && definition->healing > 0 ? definition->healing : 0;
 }
 
 static void heal_self(BattleUnit *unit, int amount)
@@ -39,7 +83,7 @@ int skill_cast(BattleContext *context, int caster_index, int target_index, FILE 
 {
     BattleUnit *caster = 0;
     BattleUnit *target = 0;
-    SkillId skill_id = SKILL_NONE;
+    const SkillDefinition *definition = 0;
 
     if (context == 0 ||
         caster_index < 0 ||
@@ -58,35 +102,28 @@ int skill_cast(BattleContext *context, int caster_index, int target_index, FILE 
         return 0;
     }
 
-    skill_id = caster->skill_id;
+    definition = skill_get_definition(caster->skill_id);
+    if (definition == 0)
+    {
+        return 0;
+    }
+
     caster->current_mana = 0;
 
-    if (skill_id == SKILL_IRON_SHIELD)
+    if (definition->target_type == SKILL_TARGET_SELF)
     {
-        logger_skill(log_stream, caster->name, skill_name(skill_id), caster->name);
-        heal_self(caster, 35);
+        logger_skill(log_stream, caster->name, definition->name, caster->name);
+        heal_self(caster, skill_calculate_healing(definition));
         return 1;
     }
 
-    if (!target->is_alive)
+    if (definition->target_type != SKILL_TARGET_ENEMY || !target->is_alive)
     {
         return 1;
     }
 
-    logger_skill(log_stream, caster->name, skill_name(skill_id), target->name);
-
-    if (skill_id == SKILL_POWER_STRIKE)
-    {
-        battle_apply_damage(target, battle_calculate_mitigated_damage(caster->attack, target->armor));
-    }
-    else if (skill_id == SKILL_QUICK_SHOT)
-    {
-        battle_apply_damage(target, battle_calculate_mitigated_damage(30, target->armor));
-    }
-    else if (skill_id == SKILL_FIREBALL)
-    {
-        battle_apply_damage(target, battle_calculate_spell_damage(45, target));
-    }
+    logger_skill(log_stream, caster->name, definition->name, target->name);
+    battle_apply_damage(target, skill_calculate_damage(definition, caster, target));
 
     if (!target->is_alive)
     {
