@@ -72,6 +72,21 @@ static void test_trait_thresholds(void)
     trait_summary_add(&summary, TRAIT_ELEMENT);
     EXPECT_EQ(20, trait_element_bonus_hp(&summary));
 
+    trait_summary_init(&summary);
+    trait_summary_add(&summary, TRAIT_CITY);
+    trait_summary_add(&summary, TRAIT_CITY);
+    EXPECT_EQ(15, trait_city_bonus_initial_mana(&summary));
+
+    trait_summary_init(&summary);
+    trait_summary_add(&summary, TRAIT_FOREST);
+    trait_summary_add(&summary, TRAIT_FOREST);
+    EXPECT_EQ(20, trait_forest_bonus_hp(&summary));
+
+    trait_summary_init(&summary);
+    trait_summary_add(&summary, TRAIT_SHADOW);
+    trait_summary_add(&summary, TRAIT_SHADOW);
+    EXPECT_EQ(15, trait_shadow_attack_percent(&summary));
+
     EXPECT_EQ(0, trait_current_threshold(1));
     EXPECT_EQ(2, trait_next_threshold(1));
     EXPECT_EQ(2, trait_current_threshold(2));
@@ -176,6 +191,51 @@ static void test_element_bonus_applies_hp(void)
     EXPECT_EQ(135, context.units[1].max_hp);
 }
 
+static void test_city_bonus_applies_initial_mana(void)
+{
+    BattleContext context = {0};
+    BoardPosition p0 = {7, 2};
+    BoardPosition p1 = {7, 3};
+
+    battle_add_unit(&context, battle_create_unit_at(1, hero_get_template(1), BATTLE_SIDE_PLAYER, p0));
+    battle_add_unit(&context, battle_create_unit_at(2, hero_get_template(2), BATTLE_SIDE_PLAYER, p1));
+
+    battle_apply_trait_summary(&context);
+
+    EXPECT_EQ(15, context.units[0].current_mana);
+    EXPECT_EQ(15, context.units[1].current_mana);
+}
+
+static void test_forest_bonus_applies_hp(void)
+{
+    BattleContext context = {0};
+    BoardPosition p0 = {7, 2};
+    BoardPosition p1 = {7, 3};
+
+    battle_add_unit(&context, battle_create_unit_at(1, hero_get_template(3), BATTLE_SIDE_PLAYER, p0));
+    battle_add_unit(&context, battle_create_unit_at(2, hero_get_template(9), BATTLE_SIDE_PLAYER, p1));
+
+    battle_apply_trait_summary(&context);
+
+    EXPECT_EQ(110, context.units[0].max_hp);
+    EXPECT_EQ(210, context.units[1].max_hp);
+}
+
+static void test_shadow_bonus_applies_attack(void)
+{
+    BattleContext context = {0};
+    BoardPosition p0 = {7, 2};
+    BoardPosition p1 = {7, 3};
+
+    battle_add_unit(&context, battle_create_unit_at(1, hero_get_template(5), BATTLE_SIDE_PLAYER, p0));
+    battle_add_unit(&context, battle_create_unit_at(2, hero_get_template(10), BATTLE_SIDE_PLAYER, p1));
+
+    battle_apply_trait_summary(&context);
+
+    EXPECT_EQ(35, context.units[0].attack);
+    EXPECT_EQ(63, context.units[1].attack);
+}
+
 int main(void)
 {
     test_trait_summary_counts_traits();
@@ -186,6 +246,9 @@ int main(void)
     test_ranger_bonus_applies_range();
     test_mage_bonus_applies_initial_mana();
     test_element_bonus_applies_hp();
+    test_city_bonus_applies_initial_mana();
+    test_forest_bonus_applies_hp();
+    test_shadow_bonus_applies_attack();
 
     if (g_failed_tests == 0)
     {

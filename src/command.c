@@ -288,9 +288,21 @@ static void command_print_trait_line(FILE *output, const TraitSummary *summary, 
     {
         fprintf(output, "，法师初始法力 +%d", trait_mage_bonus_initial_mana(summary));
     }
+    else if (trait == TRAIT_CITY)
+    {
+        fprintf(output, "，城邦初始法力 +%d", trait_city_bonus_initial_mana(summary));
+    }
+    else if (trait == TRAIT_FOREST)
+    {
+        fprintf(output, "，森林生命加成 +%d", trait_forest_bonus_hp(summary));
+    }
     else if (trait == TRAIT_ELEMENT)
     {
         fprintf(output, "，元素生命加成 +%d", trait_element_bonus_hp(summary));
+    }
+    else if (trait == TRAIT_SHADOW)
+    {
+        fprintf(output, "，暗影攻击加成 +%d%%", trait_shadow_attack_percent(summary));
     }
     else
     {

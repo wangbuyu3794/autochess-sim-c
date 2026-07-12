@@ -159,6 +159,40 @@ int trait_mage_bonus_initial_mana(const TraitSummary *summary)
     return 0;
 }
 
+int trait_city_bonus_initial_mana(const TraitSummary *summary)
+{
+    int count = trait_summary_get_count(summary, TRAIT_CITY);
+
+    if (count >= 4)
+    {
+        return 30;
+    }
+
+    if (count >= 2)
+    {
+        return 15;
+    }
+
+    return 0;
+}
+
+int trait_forest_bonus_hp(const TraitSummary *summary)
+{
+    int count = trait_summary_get_count(summary, TRAIT_FOREST);
+
+    if (count >= 4)
+    {
+        return 45;
+    }
+
+    if (count >= 2)
+    {
+        return 20;
+    }
+
+    return 0;
+}
+
 int trait_element_bonus_hp(const TraitSummary *summary)
 {
     int count = trait_summary_get_count(summary, TRAIT_ELEMENT);
@@ -171,6 +205,23 @@ int trait_element_bonus_hp(const TraitSummary *summary)
     if (count >= 2)
     {
         return 20;
+    }
+
+    return 0;
+}
+
+int trait_shadow_attack_percent(const TraitSummary *summary)
+{
+    int count = trait_summary_get_count(summary, TRAIT_SHADOW);
+
+    if (count >= 4)
+    {
+        return 35;
+    }
+
+    if (count >= 2)
+    {
+        return 15;
     }
 
     return 0;

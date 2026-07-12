@@ -99,7 +99,10 @@ void battle_apply_trait_summary(BattleContext *context)
         int blademaster_attack_percent = trait_blademaster_attack_percent(summary);
         int ranger_range = trait_ranger_bonus_range(summary);
         int mage_initial_mana = trait_mage_bonus_initial_mana(summary);
+        int city_initial_mana = trait_city_bonus_initial_mana(summary);
+        int forest_hp = trait_forest_bonus_hp(summary);
         int element_hp = trait_element_bonus_hp(summary);
+        int shadow_attack_percent = trait_shadow_attack_percent(summary);
 
         if (unit->class_trait == TRAIT_GUARDIAN && guardian_hp > 0)
         {
@@ -122,10 +125,26 @@ void battle_apply_trait_summary(BattleContext *context)
             battle_gain_mana(unit, mage_initial_mana);
         }
 
+        if (unit->origin_trait == TRAIT_CITY && city_initial_mana > 0)
+        {
+            battle_gain_mana(unit, city_initial_mana);
+        }
+
+        if (unit->origin_trait == TRAIT_FOREST && forest_hp > 0)
+        {
+            unit->max_hp += forest_hp;
+            unit->current_hp += forest_hp;
+        }
+
         if (unit->origin_trait == TRAIT_ELEMENT && element_hp > 0)
         {
             unit->max_hp += element_hp;
             unit->current_hp += element_hp;
+        }
+
+        if (unit->origin_trait == TRAIT_SHADOW && shadow_attack_percent > 0)
+        {
+            unit->attack += (unit->attack * shadow_attack_percent) / 100;
         }
     }
 }

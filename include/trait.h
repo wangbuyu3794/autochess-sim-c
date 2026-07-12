@@ -31,6 +31,9 @@ int trait_guardian_bonus_hp(const TraitSummary *summary);
 int trait_blademaster_attack_percent(const TraitSummary *summary);
 int trait_ranger_bonus_range(const TraitSummary *summary);
 int trait_mage_bonus_initial_mana(const TraitSummary *summary);
+int trait_city_bonus_initial_mana(const TraitSummary *summary);
+int trait_forest_bonus_hp(const TraitSummary *summary);
 int trait_element_bonus_hp(const TraitSummary *summary);
+int trait_shadow_attack_percent(const TraitSummary *summary);
 
 #endif
