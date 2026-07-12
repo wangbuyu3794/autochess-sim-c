@@ -31,6 +31,7 @@ void game_init(GameContext *game, unsigned int player_seed, unsigned int enemy_s
 void game_seed_player_demo_units(GameContext *game);
 int game_calculate_damage(const BattleContext *battle_context, BattleSide winner);
 GameResult game_settle_battle(GameContext *game, const BattleContext *battle_context, BattleResult battle_result);
+BattleResult game_run_battle_phase(GameContext *game, FILE *log_stream);
 BattleResult game_run_round(GameContext *game, FILE *log_stream);
 GameResult game_run_until_over(GameContext *game, FILE *log_stream);
 GameResult game_run_until_over_with_limit(GameContext *game, int max_rounds, FILE *log_stream);

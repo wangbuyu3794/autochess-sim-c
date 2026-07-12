@@ -184,6 +184,19 @@ GameResult game_settle_battle(GameContext *game, const BattleContext *battle_con
 
 BattleResult game_run_round(GameContext *game, FILE *log_stream)
 {
+    if (game == 0 || game->result != GAME_RESULT_ONGOING)
+    {
+        return BATTLE_RESULT_DRAW;
+    }
+
+    ai_run_preparation(&game->player, &game->player_shop, &game->player_next_instance_id);
+    ai_run_preparation(&game->enemy, &game->enemy_shop, &game->enemy_next_instance_id);
+
+    return game_run_battle_phase(game, log_stream);
+}
+
+BattleResult game_run_battle_phase(GameContext *game, FILE *log_stream)
+{
     BattleContext battle_context = {0};
     BattleResult battle_result = BATTLE_RESULT_DRAW;
 
@@ -193,8 +206,6 @@ BattleResult game_run_round(GameContext *game, FILE *log_stream)
     }
 
     game->current_round += 1;
-    ai_run_preparation(&game->player, &game->player_shop, &game->player_next_instance_id);
-    ai_run_preparation(&game->enemy, &game->enemy_shop, &game->enemy_next_instance_id);
     game_prepare_context(game, &battle_context);
 
     if (log_stream != 0)

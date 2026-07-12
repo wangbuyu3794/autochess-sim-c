@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- 进入 `V1.1 Interactive Preparation`。
+- 项目版本号升级为 `1.1.0`。
+- 新增 `command` 模块，支持准备阶段命令解析和执行。
+- 主程序新增 `--interactive`，可以进入交互式准备阶段。
+- 准备阶段支持 `help`、`status`、`shop`、`bench`、`buy`、`refresh`、`auto`、`ready` 和 `quit`。
+- `game` 模块新增只运行战斗阶段的接口，用于连接玩家准备和敌方 AI 准备。
+- 新增命令模块测试。
 - 进入 `V1.0 Terminal Release`。
 - 项目版本号升级为 `1.0.0`。
 - 主程序新增 `--help`、`--version`、`--quiet`、`--rounds`、`--player-seed` 和 `--enemy-seed`。

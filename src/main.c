@@ -2,7 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ai.h"
+#include "command.h"
 #include "config.h"
+#include "economy.h"
 #include "game.h"
 
 typedef struct
@@ -11,6 +14,7 @@ typedef struct
     unsigned int enemy_seed;
     int max_rounds;
     int quiet;
+    int interactive;
 } CliOptions;
 
 static void print_usage(const char *program_name)
@@ -23,6 +27,7 @@ static void print_usage(const char *program_name)
     printf("  --help              显示帮助\n");
     printf("  --version           显示版本号\n");
     printf("  --quiet             只运行模拟，不输出战斗日志\n");
+    printf("  --interactive       进入交互式准备阶段\n");
     printf("  --rounds <数量>     设置最大回合数，默认 %d\n", AUTOCHESS_MAX_GAME_ROUNDS);
     printf("  --player-seed <值>  设置玩家商店随机种子，默认 %u\n", AUTOCHESS_DEFAULT_PLAYER_SEED);
     printf("  --enemy-seed <值>   设置敌方商店随机种子，默认 %u\n", AUTOCHESS_DEFAULT_ENEMY_SEED);
@@ -79,6 +84,7 @@ static int parse_options(int argc, char **argv, CliOptions *options)
     options->enemy_seed = AUTOCHESS_DEFAULT_ENEMY_SEED;
     options->max_rounds = AUTOCHESS_MAX_GAME_ROUNDS;
     options->quiet = 0;
+    options->interactive = 0;
 
     for (int i = 1; i < argc; ++i)
     {
@@ -95,6 +101,10 @@ static int parse_options(int argc, char **argv, CliOptions *options)
         else if (strcmp(argv[i], "--quiet") == 0)
         {
             options->quiet = 1;
+        }
+        else if (strcmp(argv[i], "--interactive") == 0)
+        {
+            options->interactive = 1;
         }
         else if (strcmp(argv[i], "--rounds") == 0)
         {
@@ -131,6 +141,51 @@ static int parse_options(int argc, char **argv, CliOptions *options)
     return 1;
 }
 
+static GameResult run_interactive_game(GameContext *game, const CliOptions *options)
+{
+    if (game == 0 || options == 0)
+    {
+        return GAME_RESULT_DRAW;
+    }
+
+    printf("自走棋模拟 V%s\n", AUTOCHESS_VERSION);
+    printf("模式：交互式准备阶段，最大回合数 %d\n", options->max_rounds);
+
+    while (game->result == GAME_RESULT_ONGOING && game->current_round < options->max_rounds)
+    {
+        CommandResult command_result = COMMAND_RESULT_CONTINUE;
+
+        printf("\n===== 第 %d 回合准备阶段 =====\n", game->current_round + 1);
+        economy_apply_round_income(&game->player);
+        shop_refresh_for_player(&game->player_shop, &game->player);
+        command_print_roster(game, stdout);
+        command_print_shop(game, stdout);
+
+        command_result = command_run_preparation_loop(game, stdin, stdout);
+        if (command_result == COMMAND_RESULT_QUIT)
+        {
+            printf("已退出本局。\n");
+            return game->result;
+        }
+
+        ai_run_preparation(&game->enemy, &game->enemy_shop, &game->enemy_next_instance_id);
+        game_run_battle_phase(game, stdout);
+    }
+
+    if (game->result == GAME_RESULT_ONGOING)
+    {
+        game->result = GAME_RESULT_DRAW;
+    }
+
+    printf("游戏结束：%s，回合数 %d，玩家生命 %d，敌方生命 %d\n",
+           game_result_name(game->result),
+           game->current_round,
+           game->player.health,
+           game->enemy.health);
+
+    return game->result;
+}
+
 int main(int argc, char **argv)
 {
     GameContext game;
@@ -149,10 +204,18 @@ int main(int argc, char **argv)
     }
 
     game_init(&game, options.player_seed, options.enemy_seed);
-    game_seed_player_demo_units(&game);
-    result = game_run_until_over_with_limit(&game, options.max_rounds, log_stream);
 
-    if (options.quiet)
+    if (options.interactive)
+    {
+        result = run_interactive_game(&game, &options);
+    }
+    else
+    {
+        game_seed_player_demo_units(&game);
+        result = game_run_until_over_with_limit(&game, options.max_rounds, log_stream);
+    }
+
+    if (options.quiet && !options.interactive)
     {
         printf("游戏结束：%s，回合数 %d，玩家生命 %d，敌方生命 %d\n",
                game_result_name(result),

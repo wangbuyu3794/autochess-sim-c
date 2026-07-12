@@ -13,7 +13,7 @@
 
 ## 当前阶段
 
-当前处于 `V1.0 Terminal Release` 阶段，第一阶段终端版已经形成可运行的完整模拟。
+当前处于 `V1.1 Interactive Preparation` 阶段，已经在完整自动模拟的基础上加入交互式准备阶段。
 
 第一批文档用于确定项目边界、版本路线和协作规则：
 
@@ -39,6 +39,8 @@
 - 加入电脑玩家自动刷新、购买和部署；
 - 加入多回合对局、胜负扣血和游戏结束判断；
 - 支持命令行帮助、版本号、自定义随机种子、自定义最大回合和静默运行；
+- 支持 `--interactive` 进入交互式准备阶段；
+- 玩家可以查看商店、购买英雄、刷新商店、查看阵容、自动部署并确认进入战斗；
 - 将玩家拥有的单位复制为战斗临时单位；
 - 实现距离优先目标选择、普通攻击、死亡判断和胜负判断；
 - 输出中文战斗日志；
@@ -74,6 +76,26 @@ ctest --test-dir build-mingw
 .\build-mingw\autochess.exe --player-seed 123 --enemy-seed 456 --rounds 10 --quiet
 ```
 
+进入交互式准备阶段：
+
+```powershell
+.\build-mingw\autochess.exe --interactive
+```
+
+准备阶段可用命令：
+
+```text
+help
+status
+shop
+bench
+buy 1
+refresh
+auto
+ready
+quit
+```
+
 在 Visual Studio 生成器中，最后一步通常是：
 
 ```powershell
@@ -89,7 +111,6 @@ ctest --test-dir build-mingw
 - 排位系统；
 - 复杂装备系统；
 - 复杂强化符文；
-- 交互式命令系统；
 - 保存/读取；
 - 外部数据文件驱动；
 - 商业级平衡性；
