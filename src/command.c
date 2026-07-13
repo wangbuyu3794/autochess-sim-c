@@ -175,6 +175,7 @@ void command_print_help(FILE *output)
     fprintf(output, "  sell <编号>  出售单位，例如 sell 0\n");
     fprintf(output, "  equip <单位编号> <装备编号>  给单位装备，例如 equip 0 1\n");
     fprintf(output, "  unequip <单位编号>  卸下单位装备，例如 unequip 0\n");
+    fprintf(output, "  equipfit <单位编号>  查看单位装备适配分，例如 equipfit 0\n");
     fprintf(output, "  buyxp      花费 %d 金币购买 %d 经验\n", AUTOCHESS_BUY_EXP_COST, AUTOCHESS_BUY_EXP_AMOUNT);
     fprintf(output, "  lock       锁定或解锁商店，下回合保留当前商店\n");
     fprintf(output, "  refresh    花费 %d 金币刷新商店\n", AUTOCHESS_REFRESH_COST);
@@ -270,6 +271,42 @@ static void command_print_equipment_inventory(const Player *player, FILE *output
         }
 
         fprintf(output, "\n");
+    }
+}
+
+static void command_print_equipment_fit(const Player *player, int unit_index, FILE *output)
+{
+    size_t count = 0;
+    const EquipmentTemplate *templates = equipment_get_templates(&count);
+    const Unit *unit = 0;
+    const HeroTemplate *hero = 0;
+
+    if (player == 0 || output == 0 ||
+        unit_index < 0 || unit_index >= player->unit_count ||
+        !player->units[unit_index].is_active)
+    {
+        fprintf(output, "装备适配失败：没有找到单位。\n");
+        return;
+    }
+
+    unit = &player->units[unit_index];
+    hero = hero_get_template(unit->template_id);
+    if (hero == 0)
+    {
+        fprintf(output, "装备适配失败：英雄模板无效。\n");
+        return;
+    }
+
+    fprintf(output, "#%d %s %d星 装备适配分：\n", unit_index, hero->name, unit->star);
+    for (size_t i = 0; i < count; ++i)
+    {
+        const EquipmentTemplate *equipment = &templates[i];
+        fprintf(output,
+                "  %d. %s：%d 分，库存 %d\n",
+                equipment->id,
+                equipment->name,
+                ai_score_equipment_for_unit(equipment->id, unit),
+                player_count_equipment(player, equipment->id));
     }
 }
 
@@ -659,6 +696,26 @@ CommandResult command_execute_preparation(GameContext *game, const char *line, F
             command_print_equipment_inventory(&game->player, out);
         }
         return result == PLAYER_OK ? COMMAND_RESULT_CONTINUE : COMMAND_RESULT_ERROR;
+    }
+
+    if (strcmp(command, "equipfit") == 0)
+    {
+        int unit_index = -1;
+
+        if (!command_parse_int(argument, &unit_index))
+        {
+            fprintf(out, "装备适配失败：请输入 equipfit <单位编号>，例如 equipfit 0。\n");
+            return COMMAND_RESULT_ERROR;
+        }
+
+        if (unit_index < 0 || unit_index >= game->player.unit_count || !game->player.units[unit_index].is_active)
+        {
+            fprintf(out, "装备适配失败：没有找到单位。\n");
+            return COMMAND_RESULT_ERROR;
+        }
+
+        command_print_equipment_fit(&game->player, unit_index, out);
+        return COMMAND_RESULT_CONTINUE;
     }
 
     if (strcmp(command, "buyxp") == 0)

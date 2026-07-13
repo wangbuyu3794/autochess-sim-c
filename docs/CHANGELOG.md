@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- 进入 `V1.21 Equipment Insight`。
+- 项目版本号升级为 `1.21.0`。
+- 准备阶段新增 `equipfit <单位编号>`。
+- `equipfit` 会展示指定单位对每件装备的适配分和当前库存。
+- 命令测试覆盖装备适配查看和非法单位编号。
 - 进入 `V1.20 Equipment Fit AI`。
 - 项目版本号升级为 `1.20.0`。
 - 新增 `ai_score_equipment_for_unit`，根据装备类型和单位特点计算适配分。

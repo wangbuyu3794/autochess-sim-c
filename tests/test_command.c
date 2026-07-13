@@ -116,6 +116,17 @@ static void test_unequip_command_returns_equipment(void)
     EXPECT_EQ(COMMAND_RESULT_ERROR, command_execute_preparation(&game, "unequip 0", NULL));
 }
 
+static void test_equipfit_command_reports_scores(void)
+{
+    GameContext game;
+    game_init(&game, 1u, 2u);
+    shop_refresh(&game.player_shop, game.player.level);
+    command_execute_preparation(&game, "buy 1", NULL);
+
+    EXPECT_EQ(COMMAND_RESULT_CONTINUE, command_execute_preparation(&game, "equipfit 0", NULL));
+    EXPECT_EQ(COMMAND_RESULT_ERROR, command_execute_preparation(&game, "equipfit 99", NULL));
+}
+
 static void test_buyxp_command_spends_gold_and_levels_up(void)
 {
     GameContext game;
@@ -248,6 +259,7 @@ int main(void)
     test_items_command_lists_equipment();
     test_equip_command_equips_unit();
     test_unequip_command_returns_equipment();
+    test_equipfit_command_reports_scores();
     test_buyxp_command_spends_gold_and_levels_up();
     test_auto_command_deploys_units();
     test_deploy_command_places_bench_unit();
