@@ -1089,11 +1089,11 @@ static void gui_draw_unit_at_board_cell(const Unit *unit, BattleSide side, const
 
     DrawCircle(x + GUI_CELL_SIZE / 2, y + 22, 16, color);
     DrawCircleLines(x + GUI_CELL_SIZE / 2, y + 22, 16, (Color){30, 38, 50, 255});
-    DrawText(TextFormat("H%d", hero->id), x + 13, y + 14, 14, RAYWHITE);
-    DrawText(TextFormat("%d*", unit->star), x + 18, y + 39, 14, (Color){45, 54, 70, 255});
+    DrawText(hero->name, x + 15, y + 14, 13, RAYWHITE);
+    DrawText(TextFormat("%d星", unit->star), x + 15, y + 39, 13, (Color){45, 54, 70, 255});
     if (unit->equipment_id != EQUIPMENT_NONE)
     {
-        DrawText("E", x + 39, y + 39, 14, GOLD);
+        DrawText("装", x + 41, y + 39, 13, GOLD);
     }
 }
 
@@ -1157,8 +1157,8 @@ static void gui_draw_unit_card(Rectangle rect, const Unit *unit, int is_selected
         return;
     }
 
-    DrawText(TextFormat("英雄%d", hero->id), x + 7, y + 10, 16, (Color){30, 38, 50, 255});
-    DrawText(TextFormat("%d星 费%d", unit->star, hero->cost), x + 7, y + 36, 13, (Color){90, 96, 108, 255});
+    DrawText(hero->name, x + 7, y + 10, 17, (Color){30, 38, 50, 255});
+    DrawText(TextFormat("%d星  费%d", unit->star, hero->cost), x + 7, y + 36, 13, (Color){90, 96, 108, 255});
     if (unit->equipment_id != EQUIPMENT_NONE)
     {
         DrawText("装备", x + 7, y + 56, 12, (Color){170, 120, 20, 255});
@@ -1182,7 +1182,7 @@ static void gui_draw_shop_preview(const GameContext *game)
             const HeroTemplate *hero = hero_get_template(game->player_shop.slots[i].template_id);
             if (hero != 0)
             {
-                DrawText(TextFormat("英雄%d", hero->id), x + 7, y + 12, 16, (Color){30, 38, 50, 255});
+                DrawText(hero->name, x + 7, y + 12, 17, (Color){30, 38, 50, 255});
                 DrawText(TextFormat("费用 %d", hero->cost), x + 7, y + 40, 14, (Color){90, 96, 108, 255});
             }
         }
