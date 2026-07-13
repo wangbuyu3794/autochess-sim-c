@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(AutoChessC
-    VERSION 1.15.0
+    VERSION 1.16.0
     DESCRIPTION "A terminal auto chess simulator for learning C"
     LANGUAGES C
 )
@@ -24,6 +24,7 @@ add_library(autochess_core
     src/battle.c
     src/command.c
     src/economy.c
+    src/equipment.c
     src/game.c
     src/hero.c
     src/logger.c

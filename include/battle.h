@@ -5,6 +5,7 @@
 
 #include "config.h"
 #include "board.h"
+#include "equipment.h"
 #include "hero.h"
 
 typedef enum
@@ -41,6 +42,7 @@ typedef struct BattleUnit
     int burn_damage;
     int burn_turns;
     int stun_turns;
+    EquipmentId equipment_id;
     SkillId skill_id;
     BoardPosition position;
     int is_alive;
@@ -64,6 +66,7 @@ void battle_apply_damage(BattleUnit *target, int damage);
 void battle_add_shield(BattleUnit *unit, int amount);
 void battle_apply_burn(BattleUnit *unit, int damage, int turns);
 void battle_apply_stun(BattleUnit *unit, int turns);
+void battle_apply_equipment(BattleUnit *unit, EquipmentId equipment_id);
 int battle_process_status_start(BattleUnit *unit, FILE *log_stream);
 int battle_calculate_mitigated_damage(int raw_damage, int resistance);
 int battle_is_critical_hit(const BattleUnit *attacker, const BattleUnit *target, int round);

@@ -127,6 +127,17 @@ static void test_spell_damage_uses_magic_resist(void)
     EXPECT_EQ(37, battle_calculate_spell_damage(45, &target));
 }
 
+static void test_apply_equipment_changes_combat_stats(void)
+{
+    BattleUnit unit = battle_create_unit(1, hero_get_template(1), BATTLE_SIDE_PLAYER);
+    int attack_before = unit.attack;
+
+    battle_apply_equipment(&unit, EQUIPMENT_BROADSWORD);
+
+    EXPECT_EQ(EQUIPMENT_BROADSWORD, unit.equipment_id);
+    EXPECT_EQ(attack_before + 10, unit.attack);
+}
+
 static void test_selects_lowest_hp_target(void)
 {
     BattleContext context = make_empty_context();
@@ -269,6 +280,7 @@ int main(void)
     test_attack_damage_uses_armor();
     test_attack_damage_can_crit();
     test_spell_damage_uses_magic_resist();
+    test_apply_equipment_changes_combat_stats();
     test_selects_lowest_hp_target();
     test_selects_smaller_instance_id_when_hp_ties();
     test_selects_nearest_target_before_lowest_hp();

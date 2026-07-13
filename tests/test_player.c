@@ -146,6 +146,49 @@ static void test_deployed_units_can_create_battle_context(void)
     EXPECT_EQ(3, context.units[0].position.col);
 }
 
+static void test_player_equips_unit_and_updates_inventory(void)
+{
+    Player player;
+    player_init(&player, 1, BATTLE_SIDE_PLAYER);
+    player_add_unit_to_bench(&player, unit_create(1, 1));
+
+    EXPECT_EQ(1, player_count_equipment(&player, EQUIPMENT_BROADSWORD));
+    EXPECT_EQ(PLAYER_OK, player_equip_unit(&player, 0, EQUIPMENT_BROADSWORD));
+    EXPECT_EQ(EQUIPMENT_BROADSWORD, player.units[0].equipment_id);
+    EXPECT_EQ(0, player_count_equipment(&player, EQUIPMENT_BROADSWORD));
+    EXPECT_EQ(PLAYER_ERROR_EQUIPMENT_UNAVAILABLE, player_equip_unit(&player, 0, EQUIPMENT_BROADSWORD));
+}
+
+static void test_equipment_swaps_back_to_inventory(void)
+{
+    Player player;
+    player_init(&player, 1, BATTLE_SIDE_PLAYER);
+    player_add_unit_to_bench(&player, unit_create(1, 1));
+
+    EXPECT_EQ(PLAYER_OK, player_equip_unit(&player, 0, EQUIPMENT_BROADSWORD));
+    EXPECT_EQ(PLAYER_OK, player_equip_unit(&player, 0, EQUIPMENT_GUARDIAN_VEST));
+    EXPECT_EQ(EQUIPMENT_GUARDIAN_VEST, player.units[0].equipment_id);
+    EXPECT_EQ(1, player_count_equipment(&player, EQUIPMENT_BROADSWORD));
+    EXPECT_EQ(0, player_count_equipment(&player, EQUIPMENT_GUARDIAN_VEST));
+}
+
+static void test_equipment_applies_to_battle_unit(void)
+{
+    Player player;
+    BattleContext context = {0};
+    BoardPosition position = {7, 3};
+    player_init(&player, 1, BATTLE_SIDE_PLAYER);
+
+    player_add_unit_to_bench(&player, unit_create(1, 1));
+    player_equip_unit(&player, 0, EQUIPMENT_BROADSWORD);
+    player_deploy_from_bench(&player, 0, position);
+    player_add_deployed_units_to_battle(&player, &context);
+
+    EXPECT_EQ(1, context.unit_count);
+    EXPECT_EQ(EQUIPMENT_BROADSWORD, context.units[0].equipment_id);
+    EXPECT_EQ(hero_get_template(1)->base_attack + 10, context.units[0].attack);
+}
+
 int main(void)
 {
     test_add_unit_to_bench();
@@ -156,6 +199,9 @@ int main(void)
     test_move_deployed_unit();
     test_return_unit_to_bench();
     test_deployed_units_can_create_battle_context();
+    test_player_equips_unit_and_updates_inventory();
+    test_equipment_swaps_back_to_inventory();
+    test_equipment_applies_to_battle_unit();
 
     if (g_failed_tests == 0)
     {

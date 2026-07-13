@@ -2,6 +2,7 @@
 #define AUTOCHESS_UNIT_H
 
 #include "board.h"
+#include "equipment.h"
 
 typedef enum
 {
@@ -18,6 +19,7 @@ typedef struct
     UnitLocation location;
     int bench_index;
     BoardPosition position;
+    EquipmentId equipment_id;
     int is_active;
 } Unit;
 

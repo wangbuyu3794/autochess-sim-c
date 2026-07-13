@@ -11,6 +11,7 @@ Unit unit_create(int instance_id, int template_id)
     unit.location = UNIT_LOCATION_NONE;
     unit.bench_index = -1;
     unit.position = default_position;
+    unit.equipment_id = EQUIPMENT_NONE;
     unit.is_active = 1;
 
     return unit;

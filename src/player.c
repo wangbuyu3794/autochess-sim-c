@@ -10,6 +10,22 @@ static void player_clear_bench(Player *player)
     }
 }
 
+static void player_clear_equipment(Player *player)
+{
+    for (int i = 0; i < AUTOCHESS_MAX_EQUIPMENT_ID; ++i)
+    {
+        player->equipment_counts[i] = 0;
+    }
+}
+
+static void player_seed_starter_equipment(Player *player)
+{
+    player->equipment_counts[EQUIPMENT_BROADSWORD] = 1;
+    player->equipment_counts[EQUIPMENT_GUARDIAN_VEST] = 1;
+    player->equipment_counts[EQUIPMENT_MANA_GEM] = 1;
+    player->equipment_counts[EQUIPMENT_CRIT_GLOVES] = 1;
+}
+
 static int player_find_empty_bench_slot(const Player *player)
 {
     if (player == 0)
@@ -102,6 +118,8 @@ void player_init(Player *player, int id, BattleSide side)
     player->experience = 0;
     player->unit_count = 0;
     player_clear_bench(player);
+    player_clear_equipment(player);
+    player_seed_starter_equipment(player);
 }
 
 PlayerResult player_add_unit_to_bench(Player *player, Unit unit)
@@ -277,9 +295,53 @@ PlayerResult player_sell_unit(Player *player, int unit_index, int *refund)
     unit->bench_index = -1;
     unit->position.row = -1;
     unit->position.col = -1;
+    if (unit->equipment_id != EQUIPMENT_NONE &&
+        unit->equipment_id < AUTOCHESS_MAX_EQUIPMENT_ID)
+    {
+        player->equipment_counts[unit->equipment_id] += 1;
+    }
+    unit->equipment_id = EQUIPMENT_NONE;
 
     player->gold += sell_value;
     *refund = sell_value;
+    return PLAYER_OK;
+}
+
+PlayerResult player_equip_unit(Player *player, int unit_index, EquipmentId equipment_id)
+{
+    Unit *unit = 0;
+
+    if (player == 0)
+    {
+        return PLAYER_ERROR_INVALID_ARGUMENT;
+    }
+
+    if (unit_index < 0 || unit_index >= player->unit_count || !player->units[unit_index].is_active)
+    {
+        return PLAYER_ERROR_UNIT_NOT_FOUND;
+    }
+
+    if (equipment_id <= EQUIPMENT_NONE ||
+        equipment_id >= AUTOCHESS_MAX_EQUIPMENT_ID ||
+        equipment_get_template(equipment_id) == 0)
+    {
+        return PLAYER_ERROR_INVALID_EQUIPMENT;
+    }
+
+    if (player->equipment_counts[equipment_id] <= 0)
+    {
+        return PLAYER_ERROR_EQUIPMENT_UNAVAILABLE;
+    }
+
+    unit = &player->units[unit_index];
+    if (unit->equipment_id != EQUIPMENT_NONE &&
+        unit->equipment_id < AUTOCHESS_MAX_EQUIPMENT_ID)
+    {
+        player->equipment_counts[unit->equipment_id] += 1;
+    }
+
+    unit->equipment_id = equipment_id;
+    player->equipment_counts[equipment_id] -= 1;
     return PLAYER_OK;
 }
 
@@ -318,13 +380,26 @@ int player_try_merge_units(Player *player)
                 player_clear_bench_slot_for_unit(player, candidates[1]);
                 player_clear_bench_slot_for_unit(player, candidates[2]);
 
+                if (removed_a->equipment_id != EQUIPMENT_NONE &&
+                    removed_a->equipment_id < AUTOCHESS_MAX_EQUIPMENT_ID)
+                {
+                    player->equipment_counts[removed_a->equipment_id] += 1;
+                }
+                if (removed_b->equipment_id != EQUIPMENT_NONE &&
+                    removed_b->equipment_id < AUTOCHESS_MAX_EQUIPMENT_ID)
+                {
+                    player->equipment_counts[removed_b->equipment_id] += 1;
+                }
+
                 removed_a->is_active = 0;
                 removed_a->location = UNIT_LOCATION_NONE;
                 removed_a->bench_index = -1;
+                removed_a->equipment_id = EQUIPMENT_NONE;
 
                 removed_b->is_active = 0;
                 removed_b->location = UNIT_LOCATION_NONE;
                 removed_b->bench_index = -1;
+                removed_b->equipment_id = EQUIPMENT_NONE;
 
                 merged_count += 1;
                 did_merge = 1;
@@ -374,6 +449,16 @@ int player_count_active_units(const Player *player)
     }
 
     return count;
+}
+
+int player_count_equipment(const Player *player, EquipmentId equipment_id)
+{
+    if (player == 0 || equipment_id <= EQUIPMENT_NONE || equipment_id >= AUTOCHESS_MAX_EQUIPMENT_ID)
+    {
+        return 0;
+    }
+
+    return player->equipment_counts[equipment_id];
 }
 
 int player_count_units_by_template_and_star(const Player *player, int template_id, int star)
@@ -438,6 +523,7 @@ void player_add_deployed_units_to_battle(const Player *player, BattleContext *co
         {
             const HeroTemplate *hero = hero_get_template(unit->template_id);
             BattleUnit battle_unit = battle_create_unit_at_star(unit->instance_id, hero, player->side, unit->position, unit->star);
+            battle_apply_equipment(&battle_unit, unit->equipment_id);
             battle_add_unit(context, battle_unit);
         }
     }
@@ -465,6 +551,10 @@ const char *player_result_name(PlayerResult result)
         return "上场人数已达等级上限";
     case PLAYER_ERROR_UNIT_NOT_FOUND:
         return "没有找到单位";
+    case PLAYER_ERROR_INVALID_EQUIPMENT:
+        return "装备无效";
+    case PLAYER_ERROR_EQUIPMENT_UNAVAILABLE:
+        return "装备库存不足";
     default:
         return "未知结果";
     }

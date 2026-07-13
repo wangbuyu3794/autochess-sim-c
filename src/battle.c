@@ -52,6 +52,7 @@ BattleUnit battle_create_unit_at_star(int instance_id, const HeroTemplate *hero,
     unit.burn_damage = 0;
     unit.burn_turns = 0;
     unit.stun_turns = 0;
+    unit.equipment_id = EQUIPMENT_NONE;
     unit.skill_id = hero != NULL ? hero->skill_id : SKILL_NONE;
     unit.position = position;
     unit.is_alive = 1;
@@ -226,6 +227,31 @@ void battle_apply_stun(BattleUnit *unit, int turns)
     if (turns > unit->stun_turns)
     {
         unit->stun_turns = turns;
+    }
+}
+
+void battle_apply_equipment(BattleUnit *unit, EquipmentId equipment_id)
+{
+    const EquipmentTemplate *equipment = equipment_get_template(equipment_id);
+
+    if (unit == NULL || equipment == NULL)
+    {
+        return;
+    }
+
+    unit->equipment_id = equipment_id;
+    unit->max_hp += equipment->bonus_hp;
+    unit->current_hp += equipment->bonus_hp;
+    unit->attack += equipment->bonus_attack;
+    unit->armor += equipment->bonus_armor;
+    unit->magic_resist += equipment->bonus_magic_resist;
+    unit->crit_chance += equipment->bonus_crit_chance;
+    unit->crit_damage += equipment->bonus_crit_damage;
+    battle_gain_mana(unit, equipment->bonus_initial_mana);
+
+    if (unit->crit_chance > 100)
+    {
+        unit->crit_chance = 100;
     }
 }
 

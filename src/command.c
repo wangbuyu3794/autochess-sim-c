@@ -5,6 +5,7 @@
 
 #include "ai.h"
 #include "economy.h"
+#include "equipment.h"
 #include "hero.h"
 
 static void command_trim_newline(char *line)
@@ -91,6 +92,7 @@ static int command_parse_position(const char *row_text, const char *col_text, Bo
 static void command_print_unit_line(FILE *output, int index, const Unit *unit)
 {
     const HeroTemplate *hero = 0;
+    const char *equipment = 0;
 
     if (output == 0 || unit == 0 || !unit->is_active)
     {
@@ -103,24 +105,53 @@ static void command_print_unit_line(FILE *output, int index, const Unit *unit)
         return;
     }
 
+    equipment = unit->equipment_id == EQUIPMENT_NONE ? "" : equipment_name(unit->equipment_id);
+
     if (unit_is_deployed(unit))
     {
-        fprintf(output,
-                "  #%d %s %d星：棋盘 (%d,%d)\n",
-                index,
-                hero->name,
-                unit->star,
-                unit->position.row,
-                unit->position.col);
+        if (unit->equipment_id == EQUIPMENT_NONE)
+        {
+            fprintf(output,
+                    "  #%d %s %d星：棋盘 (%d,%d)\n",
+                    index,
+                    hero->name,
+                    unit->star,
+                    unit->position.row,
+                    unit->position.col);
+        }
+        else
+        {
+            fprintf(output,
+                    "  #%d %s %d星：棋盘 (%d,%d)，装备 %s\n",
+                    index,
+                    hero->name,
+                    unit->star,
+                    unit->position.row,
+                    unit->position.col,
+                    equipment);
+        }
     }
     else if (unit_is_on_bench(unit))
     {
-        fprintf(output,
-                "  #%d %s %d星：备战席 %d\n",
-                index,
-                hero->name,
-                unit->star,
-                unit->bench_index + 1);
+        if (unit->equipment_id == EQUIPMENT_NONE)
+        {
+            fprintf(output,
+                    "  #%d %s %d星：备战席 %d\n",
+                    index,
+                    hero->name,
+                    unit->star,
+                    unit->bench_index + 1);
+        }
+        else
+        {
+            fprintf(output,
+                    "  #%d %s %d星：备战席 %d，装备 %s\n",
+                    index,
+                    hero->name,
+                    unit->star,
+                    unit->bench_index + 1,
+                    equipment);
+        }
     }
 }
 
@@ -138,9 +169,11 @@ void command_print_help(FILE *output)
     fprintf(output, "  odds       查看当前等级商店概率\n");
     fprintf(output, "  pool       查看当前英雄池\n");
     fprintf(output, "  traits     查看当前上场阵容羁绊\n");
+    fprintf(output, "  items      查看装备库存\n");
     fprintf(output, "  bench      查看备战席和已上场单位\n");
     fprintf(output, "  buy <1-5>  购买商店中的英雄\n");
     fprintf(output, "  sell <编号>  出售单位，例如 sell 0\n");
+    fprintf(output, "  equip <单位编号> <装备编号>  给单位装备，例如 equip 0 1\n");
     fprintf(output, "  buyxp      花费 %d 金币购买 %d 经验\n", AUTOCHESS_BUY_EXP_COST, AUTOCHESS_BUY_EXP_AMOUNT);
     fprintf(output, "  lock       锁定或解锁商店，下回合保留当前商店\n");
     fprintf(output, "  refresh    花费 %d 金币刷新商店\n", AUTOCHESS_REFRESH_COST);
@@ -183,6 +216,59 @@ void command_print_shop(const GameContext *game, FILE *output)
                 hero->crit_chance,
                 hero->attack_range,
                 skill_name(hero->skill_id));
+    }
+}
+
+static void command_print_equipment_inventory(const Player *player, FILE *output)
+{
+    size_t count = 0;
+    const EquipmentTemplate *templates = equipment_get_templates(&count);
+
+    if (player == 0 || output == 0)
+    {
+        return;
+    }
+
+    fprintf(output, "装备库存：\n");
+    for (size_t i = 0; i < count; ++i)
+    {
+        const EquipmentTemplate *equipment = &templates[i];
+        fprintf(output,
+                "  %d. %s x%d",
+                equipment->id,
+                equipment->name,
+                player_count_equipment(player, equipment->id));
+
+        if (equipment->bonus_hp > 0)
+        {
+            fprintf(output, "，生命 +%d", equipment->bonus_hp);
+        }
+        if (equipment->bonus_attack > 0)
+        {
+            fprintf(output, "，攻击 +%d", equipment->bonus_attack);
+        }
+        if (equipment->bonus_armor > 0)
+        {
+            fprintf(output, "，护甲 +%d", equipment->bonus_armor);
+        }
+        if (equipment->bonus_magic_resist > 0)
+        {
+            fprintf(output, "，魔抗 +%d", equipment->bonus_magic_resist);
+        }
+        if (equipment->bonus_initial_mana > 0)
+        {
+            fprintf(output, "，初始法力 +%d", equipment->bonus_initial_mana);
+        }
+        if (equipment->bonus_crit_chance > 0)
+        {
+            fprintf(output, "，暴击率 +%d%%", equipment->bonus_crit_chance);
+        }
+        if (equipment->bonus_crit_damage > 0)
+        {
+            fprintf(output, "，暴击伤害 +%d%%", equipment->bonus_crit_damage);
+        }
+
+        fprintf(output, "\n");
     }
 }
 
@@ -459,6 +545,12 @@ CommandResult command_execute_preparation(GameContext *game, const char *line, F
         return COMMAND_RESULT_CONTINUE;
     }
 
+    if (strcmp(command, "items") == 0)
+    {
+        command_print_equipment_inventory(&game->player, out);
+        return COMMAND_RESULT_CONTINUE;
+    }
+
     if (strcmp(command, "refresh") == 0)
     {
         ShopResult result = shop_refresh_for_player(&game->player_shop, &game->player);
@@ -519,6 +611,30 @@ CommandResult command_execute_preparation(GameContext *game, const char *line, F
         else
         {
             fprintf(out, "出售结果：%s\n", player_result_name(result));
+        }
+        return result == PLAYER_OK ? COMMAND_RESULT_CONTINUE : COMMAND_RESULT_ERROR;
+    }
+
+    if (strcmp(command, "equip") == 0)
+    {
+        char *equipment_text = strtok(0, " \t");
+        int unit_index = -1;
+        int equipment_id = 0;
+        PlayerResult result = PLAYER_OK;
+
+        if (!command_parse_int(argument, &unit_index) ||
+            !command_parse_int(equipment_text, &equipment_id))
+        {
+            fprintf(out, "装备失败：请输入 equip <单位编号> <装备编号>，例如 equip 0 1。\n");
+            return COMMAND_RESULT_ERROR;
+        }
+
+        result = player_equip_unit(&game->player, unit_index, (EquipmentId)equipment_id);
+        fprintf(out, "装备结果：%s\n", player_result_name(result));
+        if (result == PLAYER_OK)
+        {
+            command_print_roster(game, out);
+            command_print_equipment_inventory(&game->player, out);
         }
         return result == PLAYER_OK ? COMMAND_RESULT_CONTINUE : COMMAND_RESULT_ERROR;
     }

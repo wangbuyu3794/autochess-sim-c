@@ -15,7 +15,9 @@ typedef enum
     PLAYER_ERROR_INVALID_DEPLOY_POSITION,
     PLAYER_ERROR_POSITION_OCCUPIED,
     PLAYER_ERROR_DEPLOY_LIMIT_REACHED,
-    PLAYER_ERROR_UNIT_NOT_FOUND
+    PLAYER_ERROR_UNIT_NOT_FOUND,
+    PLAYER_ERROR_INVALID_EQUIPMENT,
+    PLAYER_ERROR_EQUIPMENT_UNAVAILABLE
 } PlayerResult;
 
 typedef struct
@@ -29,6 +31,7 @@ typedef struct
     Unit units[AUTOCHESS_MAX_PLAYER_UNITS];
     int unit_count;
     int bench_slots[AUTOCHESS_BENCH_SIZE];
+    int equipment_counts[AUTOCHESS_MAX_EQUIPMENT_ID];
 } Player;
 
 void player_init(Player *player, int id, BattleSide side);
@@ -37,7 +40,9 @@ PlayerResult player_deploy_from_bench(Player *player, int bench_index, BoardPosi
 PlayerResult player_move_deployed_unit(Player *player, BoardPosition from, BoardPosition to);
 PlayerResult player_return_unit_to_bench(Player *player, BoardPosition position);
 PlayerResult player_sell_unit(Player *player, int unit_index, int *refund);
+PlayerResult player_equip_unit(Player *player, int unit_index, EquipmentId equipment_id);
 int player_try_merge_units(Player *player);
+int player_count_equipment(const Player *player, EquipmentId equipment_id);
 int player_count_deployed_units(const Player *player);
 int player_count_active_units(const Player *player);
 int player_count_units_by_template_and_star(const Player *player, int template_id, int star);

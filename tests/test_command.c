@@ -82,6 +82,26 @@ static void test_traits_command(void)
     EXPECT_EQ(COMMAND_RESULT_CONTINUE, command_execute_preparation(&game, "traits", NULL));
 }
 
+static void test_items_command_lists_equipment(void)
+{
+    GameContext game;
+    game_init(&game, 1u, 2u);
+
+    EXPECT_EQ(COMMAND_RESULT_CONTINUE, command_execute_preparation(&game, "items", NULL));
+}
+
+static void test_equip_command_equips_unit(void)
+{
+    GameContext game;
+    game_init(&game, 1u, 2u);
+    shop_refresh(&game.player_shop, game.player.level);
+    command_execute_preparation(&game, "buy 1", NULL);
+
+    EXPECT_EQ(COMMAND_RESULT_CONTINUE, command_execute_preparation(&game, "equip 0 1", NULL));
+    EXPECT_EQ(EQUIPMENT_BROADSWORD, game.player.units[0].equipment_id);
+    EXPECT_EQ(0, player_count_equipment(&game.player, EQUIPMENT_BROADSWORD));
+}
+
 static void test_buyxp_command_spends_gold_and_levels_up(void)
 {
     GameContext game;
@@ -210,6 +230,8 @@ int main(void)
     test_lock_command_toggles_shop_lock();
     test_odds_and_pool_commands();
     test_traits_command();
+    test_items_command_lists_equipment();
+    test_equip_command_equips_unit();
     test_buyxp_command_spends_gold_and_levels_up();
     test_auto_command_deploys_units();
     test_deploy_command_places_bench_unit();

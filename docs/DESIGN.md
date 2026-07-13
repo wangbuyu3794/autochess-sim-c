@@ -103,6 +103,7 @@ autochess --seed 12345
 | `board` | 棋盘、部署、移动、位置检查 |
 | `shop` | 商店刷新、购买逻辑、概率表 |
 | `economy` | 收入、利息、升级经验 |
+| `equipment` | 装备模板和属性加成 |
 | `trait` | 羁绊统计和属性加成 |
 | `battle` | 战斗上下文、目标选择、攻击、胜负判断 |
 | `skill` | 技能系统 |
@@ -630,3 +631,20 @@ stun_turns
 ```
 
 这版仍然不做复杂范围模板，例如圆形、扇形、整排、全场等。先用最低血友军和相邻溅射验证目标系统的扩展方向。
+
+## 31. V1.16 装备系统
+
+`V1.16` 加入第一版装备系统，继续沿用“模板与实例分离”的设计。
+
+数据分层：
+
+```text
+EquipmentTemplate：装备固定配置，例如名称、攻击、生命、护甲、法力、暴击加成
+Player.equipment_counts：玩家持有的装备库存
+Unit.equipment_id：玩家拥有单位当前装备
+BattleUnit.equipment_id：战斗快照中的装备记录
+```
+
+战斗开始时，`player_add_deployed_units_to_battle` 会先把 `Unit` 复制成 `BattleUnit`，再调用 `battle_apply_equipment` 应用装备属性。这样装备既能影响战斗，又不会让战斗过程直接改写玩家原始单位。
+
+当前每个单位只支持一件装备。装备掉落、合成、多装备槽和主动装备效果都留到后续版本，避免第一版装备系统过度膨胀。
