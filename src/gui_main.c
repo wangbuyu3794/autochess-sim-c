@@ -69,6 +69,7 @@ typedef struct
 {
     GuiSelection selection;
     GuiBattleSummary battle;
+    EquipmentId focused_equipment;
     char message[160];
 } GuiState;
 
@@ -83,7 +84,7 @@ static const char *GUI_FONT_TEXT =
     "大剑守护背心法力宝石暴击手套无"
     "：。，或右侧按钮操作已花费刷新解游戏结束模板缺失暂时只能预览推荐拥有当前图例编号费用"
     "区域信息整理生成尚未己方请先上的获得风库存穿戴替换不足可点击给选中单位"
-    "适配分最高已穿洞察显示";
+    "适配分最高已穿洞察显示详情主要适合输出前排施法暴击生命攻击初始爆伤依赖技能型";
 
 static void gui_init_resources(void)
 {
@@ -194,7 +195,8 @@ static void gui_init_state(GuiState *state)
     state->battle.enemy_deployed = 0;
     state->battle.reward_equipment = EQUIPMENT_NONE;
     state->battle.reward_side = BATTLE_SIDE_PLAYER;
-    gui_set_message(state, "V2.7：选择单位后可查看装备适配分，点击装备可穿戴。");
+    state->focused_equipment = EQUIPMENT_NONE;
+    gui_set_message(state, "V2.8：点击装备可查看详情，并给选中单位穿戴。");
 }
 
 static const char *gui_shop_result_label(ShopResult result)
@@ -282,6 +284,24 @@ static const char *gui_equipment_label(EquipmentId equipment_id)
     case EQUIPMENT_NONE:
     default:
         return "无";
+    }
+}
+
+static const char *gui_equipment_role_label(EquipmentId equipment_id)
+{
+    switch (equipment_id)
+    {
+    case EQUIPMENT_BROADSWORD:
+        return "主要适合攻击型输出单位。";
+    case EQUIPMENT_GUARDIAN_VEST:
+        return "主要适合前排和守卫单位。";
+    case EQUIPMENT_MANA_GEM:
+        return "主要适合依赖技能的施法单位。";
+    case EQUIPMENT_CRIT_GLOVES:
+        return "主要适合暴击和物理输出单位。";
+    case EQUIPMENT_NONE:
+    default:
+        return "没有选择装备。";
     }
 }
 
@@ -604,6 +624,7 @@ static void gui_handle_equipment_click(GameContext *game, GuiState *state, Equip
         return;
     }
 
+    state->focused_equipment = equipment_id;
     unit_index = gui_get_selected_unit_index(game, state);
     if (unit_index < 0)
     {
@@ -721,6 +742,7 @@ static void gui_handle_button_click(GameContext *game, GuiState *state, int butt
         result = game_run_battle_phase(game, 0);
         gui_record_battle_summary(state, game, result, player_hp_before, enemy_hp_before, player_deployed, enemy_deployed);
         gui_clear_selection(state);
+        state->focused_equipment = EQUIPMENT_NONE;
         if (game->result == GAME_RESULT_ONGOING)
         {
             gui_prepare_next_round(game);
@@ -1028,11 +1050,11 @@ static void gui_draw_info_panel(const GameContext *game, const GuiState *state)
     int active = game != 0 ? player_count_active_units(&game->player) : 0;
 
     gui_draw_panel(24, 78, 280, 500, "信息");
-    DrawText("V2.7 装备洞察", 42, 122, 20, (Color){40, 48, 62, 255});
+    DrawText("V2.8 装备详情", 42, 122, 20, (Color){40, 48, 62, 255});
     DrawText("商店：点击购买", 42, 158, 16, (Color){85, 94, 108, 255});
     DrawText("备战席：点击选择", 42, 184, 16, (Color){85, 94, 108, 255});
     DrawText("棋盘：部署或移动", 42, 210, 16, (Color){85, 94, 108, 255});
-    DrawText("装备：显示适配分", 42, 236, 16, (Color){85, 94, 108, 255});
+    DrawText("装备：详情和适配分", 42, 236, 16, (Color){85, 94, 108, 255});
 
     DrawText(TextFormat("拥有单位：%d", active), 42, 292, 16, (Color){55, 64, 78, 255});
     DrawText(TextFormat("已上场：%d/%d", deployed, game != 0 ? game->player.level : 0), 42, 318, 16, (Color){55, 64, 78, 255});
@@ -1080,6 +1102,53 @@ static void gui_draw_battle_summary(const GuiState *state, int x, int y)
     }
 }
 
+static void gui_draw_equipment_detail(const GameContext *game, const GuiState *state, int x, int y)
+{
+    EquipmentId equipment_id = state != 0 ? state->focused_equipment : EQUIPMENT_NONE;
+    const EquipmentTemplate *equipment = equipment_get_template(equipment_id);
+    const Unit *selected_unit = gui_get_selected_unit(game, state);
+    int owned = game != 0 ? player_count_equipment(&game->player, equipment_id) : 0;
+    int score = selected_unit != 0 ? ai_score_equipment_for_unit(equipment_id, selected_unit) : -1;
+
+    DrawText("装备详情", x, y, 18, (Color){40, 48, 62, 255});
+
+    if (equipment == 0)
+    {
+        DrawText("点击左侧装备查看详情。", x, y + 30, 16, (Color){85, 94, 108, 255});
+        DrawText("选择单位后还能查看适配分。", x, y + 56, 16, (Color){85, 94, 108, 255});
+        return;
+    }
+
+    DrawText(gui_equipment_label(equipment_id), x, y + 30, 18, (Color){55, 64, 78, 255});
+    DrawText(TextFormat("库存：%d", owned), x + 160, y + 32, 15, owned > 0 ? (Color){45, 115, 70, 255} : (Color){130, 138, 150, 255});
+    DrawText(TextFormat("生命 +%d  攻击 +%d  护甲 +%d  魔抗 +%d",
+                        equipment->bonus_hp,
+                        equipment->bonus_attack,
+                        equipment->bonus_armor,
+                        equipment->bonus_magic_resist),
+             x,
+             y + 60,
+             15,
+             (Color){55, 64, 78, 255});
+    DrawText(TextFormat("初始法力 +%d  暴击 +%d%% / 爆伤 +%d%%",
+                        equipment->bonus_initial_mana,
+                        equipment->bonus_crit_chance,
+                        equipment->bonus_crit_damage),
+             x,
+             y + 84,
+             15,
+             (Color){55, 64, 78, 255});
+    if (score >= 0)
+    {
+        DrawText(TextFormat("当前单位适配分：%d", score), x, y + 108, 15, (Color){45, 115, 70, 255});
+    }
+    else
+    {
+        DrawText("选择单位后显示适配分。", x, y + 108, 15, (Color){85, 94, 108, 255});
+    }
+    DrawText(gui_equipment_role_label(equipment_id), x, y + 132, 14, (Color){85, 94, 108, 255});
+}
+
 static void gui_draw_detail_panel(const GameContext *game, const GuiState *state)
 {
     const Unit *unit = gui_get_selected_unit(game, state);
@@ -1110,7 +1179,14 @@ static void gui_draw_detail_panel(const GameContext *game, const GuiState *state
                  (Color){55, 64, 78, 255});
     }
 
-    gui_draw_battle_summary(state, 820, 392);
+    if (state != 0 && state->focused_equipment != EQUIPMENT_NONE)
+    {
+        gui_draw_equipment_detail(game, state, 820, 392);
+    }
+    else
+    {
+        gui_draw_battle_summary(state, 820, 392);
+    }
 }
 
 static void gui_draw_buttons(const GameContext *game)
@@ -1153,7 +1229,7 @@ int main(void)
     shop_refresh(&game.player_shop, game.player.level);
     gui_init_state(&state);
 
-    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C Equipment Insight");
+    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C Equipment Detail");
     gui_init_resources();
     SetTargetFPS(60);
 
