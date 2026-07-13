@@ -30,6 +30,12 @@ enum
     GUI_BOTTOM_Y = 604
 };
 
+typedef struct
+{
+    Font font;
+    int owns_font;
+} GuiResources;
+
 typedef enum
 {
     GUI_SELECTION_NONE = 0,
@@ -65,6 +71,69 @@ typedef struct
     GuiBattleSummary battle;
     char message[160];
 } GuiState;
+
+static GuiResources g_gui_resources;
+
+static const char *GUI_FONT_TEXT =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,:;|/+-*#%()[]<>!?=_'"
+    "自走棋模拟图形界面核心回合玩家敌方生命金币等级经验上场人数商店锁定未锁定刷新锁店解锁自动战斗"
+    "备战席购买选择部署移动撤回空位失败成功不足已满无效没有找到单位位置被占用上限"
+    "最近摘要胜负奖励装备英雄星级实例攻击护甲魔抗暴击法力当前位置棋盘单位详情"
+    "点击关闭窗口退出安排阵容后开始下一场无战斗记录第场结果获胜平局进行中"
+    "大剑守护背心法力宝石暴击手套无"
+    "：。，或右侧按钮操作已花费刷新解游戏结束模板缺失暂时只能预览推荐拥有当前图例编号费用"
+    "区域信息整理生成尚未己方请先上的获得风";
+
+static void gui_init_resources(void)
+{
+    const char *font_candidates[] = {
+        "C:/Windows/Fonts/simhei.ttf",
+        "C:/Windows/Fonts/msyh.ttc",
+        "C:/Windows/Fonts/simsun.ttc",
+    };
+
+    g_gui_resources.font = GetFontDefault();
+    g_gui_resources.owns_font = 0;
+
+    for (int i = 0; i < (int)(sizeof(font_candidates) / sizeof(font_candidates[0])); ++i)
+    {
+        int codepoint_count = 0;
+        int *codepoints = LoadCodepoints(GUI_FONT_TEXT, &codepoint_count);
+        Font font = {0};
+
+        if (!FileExists(font_candidates[i]))
+        {
+            UnloadCodepoints(codepoints);
+            continue;
+        }
+
+        font = LoadFontEx(font_candidates[i], 24, codepoints, codepoint_count);
+        UnloadCodepoints(codepoints);
+
+        if (font.texture.id > 0)
+        {
+            g_gui_resources.font = font;
+            g_gui_resources.owns_font = 1;
+            return;
+        }
+    }
+}
+
+static void gui_unload_resources(void)
+{
+    if (g_gui_resources.owns_font)
+    {
+        UnloadFont(g_gui_resources.font);
+        g_gui_resources.owns_font = 0;
+    }
+}
+
+static void gui_draw_text(const char *text, int x, int y, int font_size, Color color)
+{
+    DrawTextEx(g_gui_resources.font, text, (Vector2){(float)x, (float)y}, (float)font_size, 1.0f, color);
+}
+
+#define DrawText(text, x, y, fontSize, ...) gui_draw_text((text), (x), (y), (fontSize), __VA_ARGS__)
 
 static Rectangle gui_make_rect(int x, int y, int width, int height)
 {
@@ -124,7 +193,7 @@ static void gui_init_state(GuiState *state)
     state->battle.enemy_deployed = 0;
     state->battle.reward_equipment = EQUIPMENT_NONE;
     state->battle.reward_side = BATTLE_SIDE_PLAYER;
-    gui_set_message(state, "V2.4 ready: click Battle to record a battle summary.");
+    gui_set_message(state, "V2.5：点击商店、备战席、棋盘或右侧按钮进行操作。");
 }
 
 static const char *gui_shop_result_label(ShopResult result)
@@ -132,20 +201,20 @@ static const char *gui_shop_result_label(ShopResult result)
     switch (result)
     {
     case SHOP_OK:
-        return "success";
+        return "成功";
     case SHOP_ERROR_INVALID_SLOT:
-        return "invalid shop slot";
+        return "商店位置无效";
     case SHOP_ERROR_EMPTY_SLOT:
-        return "empty shop slot";
+        return "商店位置为空";
     case SHOP_ERROR_NOT_ENOUGH_GOLD:
-        return "not enough gold";
+        return "金币不足";
     case SHOP_ERROR_BENCH_FULL:
-        return "bench full";
+        return "备战席已满";
     case SHOP_ERROR_NO_TEMPLATE:
-        return "missing hero template";
+        return "英雄模板缺失";
     case SHOP_ERROR_INVALID_ARGUMENT:
     default:
-        return "invalid action";
+        return "操作无效";
     }
 }
 
@@ -154,24 +223,24 @@ static const char *gui_player_result_label(PlayerResult result)
     switch (result)
     {
     case PLAYER_OK:
-        return "success";
+        return "成功";
     case PLAYER_ERROR_BENCH_FULL:
-        return "bench full";
+        return "备战席已满";
     case PLAYER_ERROR_INVALID_BENCH_SLOT:
-        return "invalid bench slot";
+        return "备战席位置无效";
     case PLAYER_ERROR_EMPTY_BENCH_SLOT:
-        return "empty bench slot";
+        return "备战席为空";
     case PLAYER_ERROR_INVALID_DEPLOY_POSITION:
-        return "invalid deploy position";
+        return "部署位置无效";
     case PLAYER_ERROR_POSITION_OCCUPIED:
-        return "position occupied";
+        return "位置被占用";
     case PLAYER_ERROR_DEPLOY_LIMIT_REACHED:
-        return "deploy limit reached";
+        return "上场人数已达上限";
     case PLAYER_ERROR_UNIT_NOT_FOUND:
-        return "unit not found";
+        return "没有找到单位";
     case PLAYER_ERROR_INVALID_ARGUMENT:
     default:
-        return "invalid action";
+        return "操作无效";
     }
 }
 
@@ -180,14 +249,14 @@ static const char *gui_battle_result_label(BattleResult result)
     switch (result)
     {
     case BATTLE_RESULT_PLAYER_WIN:
-        return "player win";
+        return "玩家获胜";
     case BATTLE_RESULT_ENEMY_WIN:
-        return "enemy win";
+        return "敌方获胜";
     case BATTLE_RESULT_DRAW:
-        return "draw";
+        return "平局";
     case BATTLE_RESULT_ONGOING:
     default:
-        return "ongoing";
+        return "进行中";
     }
 }
 
@@ -196,22 +265,22 @@ static const char *gui_equipment_label(EquipmentId equipment_id)
     switch (equipment_id)
     {
     case EQUIPMENT_BROADSWORD:
-        return "Broadsword";
+        return "暴风大剑";
     case EQUIPMENT_GUARDIAN_VEST:
-        return "Guardian Vest";
+        return "守护背心";
     case EQUIPMENT_MANA_GEM:
-        return "Mana Gem";
+        return "法力宝石";
     case EQUIPMENT_CRIT_GLOVES:
-        return "Crit Gloves";
+        return "暴击手套";
     case EQUIPMENT_NONE:
     default:
-        return "None";
+        return "无";
     }
 }
 
 static const char *gui_side_label(BattleSide side)
 {
-    return side == BATTLE_SIDE_PLAYER ? "player" : "enemy";
+    return side == BATTLE_SIDE_PLAYER ? "玩家" : "敌方";
 }
 
 static Color gui_side_color(BattleSide side)
@@ -335,7 +404,7 @@ static void gui_select_bench(GuiState *state, int bench_index)
     state->selection.bench_index = bench_index;
     state->selection.position.row = -1;
     state->selection.position.col = -1;
-    gui_set_message_format(state, "Selected bench slot %d.", bench_index + 1);
+    gui_set_message_format(state, "已选择备战席第 %d 格。", bench_index + 1);
 }
 
 static void gui_select_board(GuiState *state, BoardPosition position)
@@ -348,7 +417,7 @@ static void gui_select_board(GuiState *state, BoardPosition position)
     state->selection.type = GUI_SELECTION_BOARD;
     state->selection.bench_index = -1;
     state->selection.position = position;
-    gui_set_message(state, "Selected deployed unit.");
+    gui_set_message(state, "已选择棋盘上的己方单位。");
 }
 
 static void gui_handle_shop_click(GameContext *game, GuiState *state, int slot_index)
@@ -365,11 +434,11 @@ static void gui_handle_shop_click(GameContext *game, GuiState *state, int slot_i
     {
         game->player_next_instance_id += 1;
         gui_clear_selection(state);
-        gui_set_message_format(state, "Bought shop slot %d.", slot_index + 1);
+        gui_set_message_format(state, "已购买商店第 %d 格。", slot_index + 1);
         return;
     }
 
-    snprintf(state->message, sizeof(state->message), "Buy failed: %s.", gui_shop_result_label(result));
+    snprintf(state->message, sizeof(state->message), "购买失败：%s。", gui_shop_result_label(result));
 }
 
 static void gui_handle_bench_click(GameContext *game, GuiState *state, int bench_index)
@@ -388,11 +457,11 @@ static void gui_handle_bench_click(GameContext *game, GuiState *state, int bench
         if (result == PLAYER_OK)
         {
             gui_clear_selection(state);
-            gui_set_message(state, "Returned unit to bench.");
+            gui_set_message(state, "已撤回到备战席。");
             return;
         }
 
-        snprintf(state->message, sizeof(state->message), "Return failed: %s.", gui_player_result_label(result));
+        snprintf(state->message, sizeof(state->message), "撤回失败：%s。", gui_player_result_label(result));
         return;
     }
 
@@ -403,7 +472,7 @@ static void gui_handle_bench_click(GameContext *game, GuiState *state, int bench
     }
 
     gui_clear_selection(state);
-    gui_set_message_format(state, "Bench slot %d is empty.", bench_index + 1);
+    gui_set_message_format(state, "备战席第 %d 格为空。", bench_index + 1);
 }
 
 static void gui_handle_board_click(GameContext *game, GuiState *state, BoardPosition position)
@@ -427,7 +496,7 @@ static void gui_handle_board_click(GameContext *game, GuiState *state, BoardPosi
     if (enemy_unit_index >= 0)
     {
         gui_clear_selection(state);
-        gui_set_message(state, "Enemy unit preview only.");
+        gui_set_message(state, "敌方单位暂时只能预览。");
         return;
     }
 
@@ -437,11 +506,11 @@ static void gui_handle_board_click(GameContext *game, GuiState *state, BoardPosi
         if (result == PLAYER_OK)
         {
             gui_clear_selection(state);
-            gui_set_message(state, "Deployed selected bench unit.");
+            gui_set_message(state, "已部署选中的备战席单位。");
             return;
         }
 
-        snprintf(state->message, sizeof(state->message), "Deploy failed: %s.", gui_player_result_label(result));
+        snprintf(state->message, sizeof(state->message), "部署失败：%s。", gui_player_result_label(result));
         return;
     }
 
@@ -452,15 +521,15 @@ static void gui_handle_board_click(GameContext *game, GuiState *state, BoardPosi
         if (result == PLAYER_OK)
         {
             gui_select_board(state, position);
-            gui_set_message(state, "Moved selected unit.");
+            gui_set_message(state, "已移动选中的单位。");
             return;
         }
 
-        snprintf(state->message, sizeof(state->message), "Move failed: %s.", gui_player_result_label(result));
+        snprintf(state->message, sizeof(state->message), "移动失败：%s。", gui_player_result_label(result));
         return;
     }
 
-    gui_set_message(state, "Select a bench or board unit first.");
+    gui_set_message(state, "请先选择备战席或棋盘上的己方单位。");
 }
 
 static void gui_prepare_next_round(GameContext *game)
@@ -524,24 +593,24 @@ static void gui_handle_button_click(GameContext *game, GuiState *state, int butt
         ShopResult result = shop_refresh_for_player(&game->player_shop, &game->player);
         if (result == SHOP_OK)
         {
-            gui_set_message(state, "Shop refreshed for 2 gold.");
+            gui_set_message(state, "已花费 2 金币刷新商店。");
         }
         else
         {
-            snprintf(state->message, sizeof(state->message), "Refresh failed: %s.", gui_shop_result_label(result));
+            snprintf(state->message, sizeof(state->message), "刷新失败：%s。", gui_shop_result_label(result));
         }
     }
     else if (button_index == 1)
     {
         shop_set_locked(&game->player_shop, !game->player_shop.is_locked);
-        gui_set_message(state, game->player_shop.is_locked ? "Shop locked." : "Shop unlocked.");
+        gui_set_message(state, game->player_shop.is_locked ? "商店已锁定。" : "商店已解锁。");
     }
     else if (button_index == 2)
     {
         ai_deploy_best_units(&game->player);
         ai_equip_best_units(&game->player);
         gui_clear_selection(state);
-        gui_set_message(state, "Auto deployed and equipped best units.");
+        gui_set_message(state, "已自动部署并装备推荐单位。");
     }
     else if (button_index == 3)
     {
@@ -552,7 +621,7 @@ static void gui_handle_button_click(GameContext *game, GuiState *state, int butt
         int enemy_deployed = 0;
         if (game->result != GAME_RESULT_ONGOING)
         {
-            gui_set_message(state, "Game is already over.");
+            gui_set_message(state, "游戏已经结束。");
             return;
         }
 
@@ -567,7 +636,7 @@ static void gui_handle_button_click(GameContext *game, GuiState *state, int butt
         {
             gui_prepare_next_round(game);
         }
-        snprintf(state->message, sizeof(state->message), "Round %d battle: %s.", state->battle.round, gui_battle_result_label(result));
+        snprintf(state->message, sizeof(state->message), "第 %d 回合战斗：%s。", state->battle.round, gui_battle_result_label(result));
     }
 }
 
@@ -628,20 +697,20 @@ static void gui_draw_status_bar(const GameContext *game)
     int deployed = game != 0 ? player_count_deployed_units(&game->player) : 0;
 
     DrawRectangle(0, 0, GUI_SCREEN_WIDTH, 56, (Color){31, 36, 48, 255});
-    DrawText(TextFormat("AutoChess-C GUI | Core V%s", AUTOCHESS_VERSION), 24, 16, 20, RAYWHITE);
+    DrawText(TextFormat("自走棋模拟 GUI | Core V%s", AUTOCHESS_VERSION), 24, 16, 20, RAYWHITE);
 
     if (game == 0)
     {
         return;
     }
 
-    DrawText(TextFormat("Round %d", game->current_round + 1), 450, 17, 18, LIGHTGRAY);
-    DrawText(TextFormat("HP %d", game->player.health), 560, 17, 18, LIGHTGRAY);
-    DrawText(TextFormat("Enemy %d", game->enemy.health), 650, 17, 18, LIGHTGRAY);
-    DrawText(TextFormat("Gold %d", game->player.gold), 780, 17, 18, GOLD);
-    DrawText(TextFormat("Lv %d Exp %d", game->player.level, game->player.experience), 880, 17, 18, LIGHTGRAY);
-    DrawText(TextFormat("Units %d/%d", deployed, game->player.level), 1020, 17, 18, LIGHTGRAY);
-    DrawText(game->player_shop.is_locked ? "Locked" : "Unlocked", 1140, 17, 18, game->player_shop.is_locked ? GOLD : LIGHTGRAY);
+    DrawText(TextFormat("回合 %d", game->current_round + 1), 450, 17, 18, LIGHTGRAY);
+    DrawText(TextFormat("生命 %d", game->player.health), 560, 17, 18, LIGHTGRAY);
+    DrawText(TextFormat("敌方 %d", game->enemy.health), 670, 17, 18, LIGHTGRAY);
+    DrawText(TextFormat("金币 %d", game->player.gold), 780, 17, 18, GOLD);
+    DrawText(TextFormat("等级 %d 经验 %d", game->player.level, game->player.experience), 880, 17, 18, LIGHTGRAY);
+    DrawText(TextFormat("上场 %d/%d", deployed, game->player.level), 1040, 17, 18, LIGHTGRAY);
+    DrawText(game->player_shop.is_locked ? "已锁定" : "未锁定", 1160, 17, 18, game->player_shop.is_locked ? GOLD : LIGHTGRAY);
 }
 
 static void gui_draw_panel(int x, int y, int width, int height, const char *title)
@@ -724,8 +793,8 @@ static void gui_draw_board(const GameContext *game, const GuiState *state)
         }
     }
 
-    DrawText("Enemy Side", GUI_BOARD_X, GUI_BOARD_Y - 26, 18, (Color){78, 90, 110, 255});
-    DrawText("Player Side", GUI_BOARD_X, GUI_BOARD_Y + GUI_CELL_SIZE * 4 + 8, 18, (Color){78, 110, 88, 255});
+    DrawText("敌方区域", GUI_BOARD_X, GUI_BOARD_Y - 26, 18, (Color){78, 90, 110, 255});
+    DrawText("玩家区域", GUI_BOARD_X, GUI_BOARD_Y + GUI_CELL_SIZE * 4 + 8, 18, (Color){78, 110, 88, 255});
 
     if (game != 0)
     {
@@ -745,28 +814,28 @@ static void gui_draw_unit_card(Rectangle rect, const Unit *unit, int is_selected
 
     if (unit == 0 || !unit->is_active)
     {
-        DrawText("Empty", x + 8, y + 27, 14, GRAY);
+        DrawText("空", x + 8, y + 27, 14, GRAY);
         return;
     }
 
     hero = hero_get_template(unit->template_id);
     if (hero == 0)
     {
-        DrawText("Invalid", x + 8, y + 27, 14, RED);
+        DrawText("无效", x + 8, y + 27, 14, RED);
         return;
     }
 
-    DrawText(TextFormat("H%d", hero->id), x + 8, y + 10, 18, (Color){30, 38, 50, 255});
-    DrawText(TextFormat("%d* C%d", unit->star, hero->cost), x + 8, y + 36, 14, (Color){90, 96, 108, 255});
+    DrawText(TextFormat("英雄%d", hero->id), x + 7, y + 10, 16, (Color){30, 38, 50, 255});
+    DrawText(TextFormat("%d星 费%d", unit->star, hero->cost), x + 7, y + 36, 13, (Color){90, 96, 108, 255});
     if (unit->equipment_id != EQUIPMENT_NONE)
     {
-        DrawText("Equip", x + 8, y + 56, 12, (Color){170, 120, 20, 255});
+        DrawText("装备", x + 7, y + 56, 12, (Color){170, 120, 20, 255});
     }
 }
 
 static void gui_draw_shop_preview(const GameContext *game)
 {
-    DrawText("Shop", GUI_SHOP_X, GUI_BOTTOM_Y - 26, 18, (Color){35, 42, 55, 255});
+    DrawText("商店", GUI_SHOP_X, GUI_BOTTOM_Y - 26, 18, (Color){35, 42, 55, 255});
     for (int i = 0; i < AUTOCHESS_SHOP_SIZE; ++i)
     {
         Rectangle rect = gui_shop_rect(i);
@@ -781,20 +850,20 @@ static void gui_draw_shop_preview(const GameContext *game)
             const HeroTemplate *hero = hero_get_template(game->player_shop.slots[i].template_id);
             if (hero != 0)
             {
-                DrawText(TextFormat("H%d", hero->id), x + 8, y + 12, 18, (Color){30, 38, 50, 255});
-                DrawText(TextFormat("Cost %d", hero->cost), x + 8, y + 40, 14, (Color){90, 96, 108, 255});
+                DrawText(TextFormat("英雄%d", hero->id), x + 7, y + 12, 16, (Color){30, 38, 50, 255});
+                DrawText(TextFormat("费用 %d", hero->cost), x + 7, y + 40, 14, (Color){90, 96, 108, 255});
             }
         }
         else
         {
-            DrawText("Empty", x + 8, y + 27, 14, GRAY);
+            DrawText("空", x + 8, y + 27, 14, GRAY);
         }
     }
 }
 
 static void gui_draw_bench_preview(const GameContext *game, const GuiState *state)
 {
-    DrawText("Bench", GUI_BENCH_X, GUI_BOTTOM_Y - 26, 18, (Color){35, 42, 55, 255});
+    DrawText("备战席", GUI_BENCH_X, GUI_BOTTOM_Y - 26, 18, (Color){35, 42, 55, 255});
     for (int i = 0; i < AUTOCHESS_BENCH_SIZE; ++i)
     {
         const Unit *unit = 0;
@@ -814,25 +883,25 @@ static void gui_draw_info_panel(const GameContext *game, const GuiState *state)
     int deployed = game != 0 ? player_count_deployed_units(&game->player) : 0;
     int active = game != 0 ? player_count_active_units(&game->player) : 0;
 
-    gui_draw_panel(24, 78, 280, 500, "Info");
-    DrawText("V2.4 Battle Summary", 42, 122, 20, (Color){40, 48, 62, 255});
-    DrawText("Click shop: buy", 42, 158, 16, (Color){85, 94, 108, 255});
-    DrawText("Click bench: select", 42, 184, 16, (Color){85, 94, 108, 255});
-    DrawText("Click board: deploy/move", 42, 210, 16, (Color){85, 94, 108, 255});
-    DrawText("Battle: record summary", 42, 236, 16, (Color){85, 94, 108, 255});
+    gui_draw_panel(24, 78, 280, 500, "信息");
+    DrawText("V2.5 界面整理", 42, 122, 20, (Color){40, 48, 62, 255});
+    DrawText("商店：点击购买", 42, 158, 16, (Color){85, 94, 108, 255});
+    DrawText("备战席：点击选择", 42, 184, 16, (Color){85, 94, 108, 255});
+    DrawText("棋盘：部署或移动", 42, 210, 16, (Color){85, 94, 108, 255});
+    DrawText("战斗：生成摘要", 42, 236, 16, (Color){85, 94, 108, 255});
 
-    DrawText(TextFormat("Player units: %d", active), 42, 292, 16, (Color){55, 64, 78, 255});
-    DrawText(TextFormat("Deployed: %d/%d", deployed, game != 0 ? game->player.level : 0), 42, 318, 16, (Color){55, 64, 78, 255});
-    DrawText(TextFormat("Selection: %s",
-                        state != 0 && state->selection.type == GUI_SELECTION_BENCH ? "bench" :
-                        state != 0 && state->selection.type == GUI_SELECTION_BOARD ? "board" : "none"),
+    DrawText(TextFormat("拥有单位：%d", active), 42, 292, 16, (Color){55, 64, 78, 255});
+    DrawText(TextFormat("已上场：%d/%d", deployed, game != 0 ? game->player.level : 0), 42, 318, 16, (Color){55, 64, 78, 255});
+    DrawText(TextFormat("当前选择：%s",
+                        state != 0 && state->selection.type == GUI_SELECTION_BENCH ? "备战席" :
+                        state != 0 && state->selection.type == GUI_SELECTION_BOARD ? "棋盘" : "无"),
              42,
              344,
              16,
              (Color){55, 64, 78, 255});
 
-    DrawText("Legend:", 42, 398, 16, (Color){55, 64, 78, 255});
-    DrawText("H# hero id | * star | E equip", 42, 424, 16, (Color){85, 94, 108, 255});
+    DrawText("图例", 42, 398, 16, (Color){55, 64, 78, 255});
+    DrawText("英雄编号 / 星级 / 装备", 42, 424, 16, (Color){85, 94, 108, 255});
 }
 
 static void gui_draw_battle_summary(const GuiState *state, int x, int y)
@@ -841,30 +910,30 @@ static void gui_draw_battle_summary(const GuiState *state, int x, int y)
     int player_damage = 0;
     int enemy_damage = 0;
 
-    DrawText("Last Battle", x, y, 18, (Color){40, 48, 62, 255});
+    DrawText("最近战斗", x, y, 18, (Color){40, 48, 62, 255});
 
     if (battle == 0 || !battle->has_battle)
     {
-        DrawText("No battle has been played yet.", x, y + 30, 16, (Color){85, 94, 108, 255});
-        DrawText("Click Battle after arranging units.", x, y + 56, 16, (Color){85, 94, 108, 255});
+        DrawText("还没有战斗记录。", x, y + 30, 16, (Color){85, 94, 108, 255});
+        DrawText("安排阵容后点击战斗。", x, y + 56, 16, (Color){85, 94, 108, 255});
         return;
     }
 
     player_damage = battle->player_hp_before - battle->player_hp_after;
     enemy_damage = battle->enemy_hp_before - battle->enemy_hp_after;
 
-    DrawText(TextFormat("Round %d | %s", battle->round, gui_battle_result_label(battle->result)), x, y + 30, 16, (Color){55, 64, 78, 255});
-    DrawText(TextFormat("Player HP %d -> %d  (-%d)", battle->player_hp_before, battle->player_hp_after, player_damage), x, y + 56, 16, (Color){55, 64, 78, 255});
-    DrawText(TextFormat("Enemy  HP %d -> %d  (-%d)", battle->enemy_hp_before, battle->enemy_hp_after, enemy_damage), x, y + 82, 16, (Color){55, 64, 78, 255});
-    DrawText(TextFormat("Units: player %d / enemy %d", battle->player_deployed, battle->enemy_deployed), x, y + 108, 16, (Color){55, 64, 78, 255});
+    DrawText(TextFormat("第 %d 回合 | %s", battle->round, gui_battle_result_label(battle->result)), x, y + 30, 16, (Color){55, 64, 78, 255});
+    DrawText(TextFormat("玩家生命 %d -> %d  (-%d)", battle->player_hp_before, battle->player_hp_after, player_damage), x, y + 56, 16, (Color){55, 64, 78, 255});
+    DrawText(TextFormat("敌方生命 %d -> %d  (-%d)", battle->enemy_hp_before, battle->enemy_hp_after, enemy_damage), x, y + 82, 16, (Color){55, 64, 78, 255});
+    DrawText(TextFormat("上场人数：玩家 %d / 敌方 %d", battle->player_deployed, battle->enemy_deployed), x, y + 108, 16, (Color){55, 64, 78, 255});
 
     if (battle->reward_equipment != EQUIPMENT_NONE)
     {
-        DrawText(TextFormat("Reward: %s -> %s", gui_side_label(battle->reward_side), gui_equipment_label(battle->reward_equipment)), x, y + 134, 16, (Color){140, 100, 20, 255});
+        DrawText(TextFormat("奖励：%s 获得 %s", gui_side_label(battle->reward_side), gui_equipment_label(battle->reward_equipment)), x, y + 134, 16, (Color){140, 100, 20, 255});
     }
     else
     {
-        DrawText("Reward: none", x, y + 134, 16, (Color){85, 94, 108, 255});
+        DrawText("奖励：无", x, y + 134, 16, (Color){85, 94, 108, 255});
     }
 }
 
@@ -873,25 +942,25 @@ static void gui_draw_detail_panel(const GameContext *game, const GuiState *state
     const Unit *unit = gui_get_selected_unit(game, state);
     const HeroTemplate *hero = unit != 0 ? hero_get_template(unit->template_id) : 0;
 
-    gui_draw_panel(790, 78, 460, 500, "Unit / Battle");
+    gui_draw_panel(790, 78, 460, 500, "单位 / 战斗");
 
     if (unit == 0 || hero == 0)
     {
-        DrawText("No player unit selected.", 820, 124, 18, (Color){85, 94, 108, 255});
-        DrawText("Select a bench or deployed unit.", 820, 154, 16, (Color){85, 94, 108, 255});
+        DrawText("尚未选择玩家单位。", 820, 124, 18, (Color){85, 94, 108, 255});
+        DrawText("点击备战席或己方棋盘单位。", 820, 154, 16, (Color){85, 94, 108, 255});
     }
     else
     {
-        DrawText(TextFormat("Hero %d", hero->id), 820, 124, 24, (Color){40, 48, 62, 255});
-        DrawText(TextFormat("Cost %d | Star %d | Instance %d", hero->cost, unit->star, unit->instance_id), 820, 164, 18, (Color){85, 94, 108, 255});
-        DrawText(TextFormat("HP %d  ATK %d", hero->base_hp, hero->base_attack), 820, 204, 18, (Color){55, 64, 78, 255});
-        DrawText(TextFormat("Armor %d  MR %d", hero->armor, hero->magic_resist), 820, 234, 18, (Color){55, 64, 78, 255});
-        DrawText(TextFormat("Crit %d%% / %d%%", hero->crit_chance, hero->crit_damage), 820, 264, 18, (Color){55, 64, 78, 255});
-        DrawText(TextFormat("Mana %d / %d", hero->initial_mana, hero->max_mana), 820, 294, 18, (Color){55, 64, 78, 255});
-        DrawText(TextFormat("Equipment: %s", equipment_name(unit->equipment_id)), 820, 334, 18, (Color){140, 100, 20, 255});
-        DrawText(TextFormat("Location: %s",
-                            unit->location == UNIT_LOCATION_BENCH ? "bench" :
-                            unit->location == UNIT_LOCATION_BOARD ? "board" : "none"),
+        DrawText(TextFormat("英雄 %d", hero->id), 820, 124, 24, (Color){40, 48, 62, 255});
+        DrawText(TextFormat("费用 %d | %d 星 | 实例 %d", hero->cost, unit->star, unit->instance_id), 820, 164, 18, (Color){85, 94, 108, 255});
+        DrawText(TextFormat("生命 %d  攻击 %d", hero->base_hp, hero->base_attack), 820, 204, 18, (Color){55, 64, 78, 255});
+        DrawText(TextFormat("护甲 %d  魔抗 %d", hero->armor, hero->magic_resist), 820, 234, 18, (Color){55, 64, 78, 255});
+        DrawText(TextFormat("暴击 %d%% / %d%%", hero->crit_chance, hero->crit_damage), 820, 264, 18, (Color){55, 64, 78, 255});
+        DrawText(TextFormat("法力 %d / %d", hero->initial_mana, hero->max_mana), 820, 294, 18, (Color){55, 64, 78, 255});
+        DrawText(TextFormat("装备：%s", gui_equipment_label(unit->equipment_id)), 820, 334, 18, (Color){140, 100, 20, 255});
+        DrawText(TextFormat("位置：%s",
+                            unit->location == UNIT_LOCATION_BENCH ? "备战席" :
+                            unit->location == UNIT_LOCATION_BOARD ? "棋盘" : "无"),
                  820,
                  364,
                  18,
@@ -903,7 +972,7 @@ static void gui_draw_detail_panel(const GameContext *game, const GuiState *state
 
 static void gui_draw_buttons(const GameContext *game)
 {
-    const char *labels[4] = {"Refresh", "Lock", "Auto", "Battle"};
+    const char *labels[4] = {"刷新", "锁店", "自动", "战斗"};
 
     for (int i = 0; i < 4; ++i)
     {
@@ -914,7 +983,7 @@ static void gui_draw_buttons(const GameContext *game)
         if (i == 1 && game != 0 && game->player_shop.is_locked)
         {
             fill = (Color){255, 248, 220, 255};
-            label = "Unlock";
+            label = "解锁";
         }
 
         DrawRectangleRec(rect, fill);
@@ -927,7 +996,7 @@ static void gui_draw_message_bar(const GuiState *state)
 {
     DrawRectangle(0, 690, GUI_SCREEN_WIDTH, 30, (Color){31, 36, 48, 255});
     DrawText(state != 0 ? state->message : "", 24, 697, 14, RAYWHITE);
-    DrawText("Close window to exit.", 1100, 697, 14, LIGHTGRAY);
+    DrawText("关闭窗口退出", 1128, 697, 14, LIGHTGRAY);
 }
 
 int main(void)
@@ -941,7 +1010,8 @@ int main(void)
     shop_refresh(&game.player_shop, game.player.level);
     gui_init_state(&state);
 
-    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C Battle Summary");
+    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C UI Polish");
+    gui_init_resources();
     SetTargetFPS(60);
 
     while (!WindowShouldClose())
@@ -966,6 +1036,7 @@ int main(void)
         EndDrawing();
     }
 
+    gui_unload_resources();
     CloseWindow();
     return 0;
 }
