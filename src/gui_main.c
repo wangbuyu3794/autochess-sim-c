@@ -99,7 +99,7 @@ static const char *GUI_FONT_TEXT =
     "释放目标造成点伤害剩余值被击败移动到阻挡原地等待灼烧眩晕跳过行动治疗当前护盾吸收"
     "铁壁护盾破势斩连珠箭火球术秘法箭圣光守护终结斩获得"
     "技能效果羁绊职业阵营射程物理法术自我敌人低血友军固定攻击系数溅射斩杀"
-    "下一步建议调整继续再次空格关闭窗口展示打磨";
+    "下一步建议调整继续再次空格关闭窗口展示打磨均";
 
 static void gui_init_resources(void)
 {
@@ -280,7 +280,7 @@ static void gui_init_state(GuiState *state)
     state->battle.reward_side = BATTLE_SIDE_PLAYER;
     gui_clear_battle_log(state);
     state->focused_equipment = EQUIPMENT_NONE;
-    gui_set_message(state, "V2.13：展示打磨完成，提示更紧凑。");
+    gui_set_message(state, "V3.0：展示版完成，终端和图形版均可演示。");
 }
 
 static const char *gui_shop_result_label(ShopResult result)
@@ -1201,7 +1201,7 @@ static void gui_draw_info_panel(const GameContext *game, const GuiState *state)
     int active = game != 0 ? player_count_active_units(&game->player) : 0;
 
     gui_draw_panel(24, 78, 280, 500, "信息");
-    DrawText("V2.13 展示打磨", 42, 122, 20, (Color){40, 48, 62, 255});
+    DrawText("V3.0 展示版", 42, 122, 20, (Color){40, 48, 62, 255});
     DrawText("商店：点击购买", 42, 158, 16, (Color){85, 94, 108, 255});
     DrawText("备战席：点击选择", 42, 184, 16, (Color){85, 94, 108, 255});
     DrawText("棋盘：部署或移动", 42, 210, 16, (Color){85, 94, 108, 255});
@@ -1427,7 +1427,7 @@ int main(void)
     shop_refresh(&game.player_shop, game.player.level);
     gui_init_state(&state);
 
-    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C Showcase Polish");
+    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C V3.0 Showcase");
     gui_init_resources();
     SetTargetFPS(60);
 
