@@ -52,6 +52,39 @@ static void test_damage_clamps_hp_and_kills_unit(void)
     EXPECT_EQ(0, unit.is_alive);
 }
 
+static void test_shield_absorbs_damage_before_hp(void)
+{
+    BattleUnit unit = battle_create_unit(1, hero_get_template(1), BATTLE_SIDE_PLAYER);
+
+    battle_add_shield(&unit, 20);
+    battle_apply_damage(&unit, 30);
+
+    EXPECT_EQ(0, unit.shield);
+    EXPECT_EQ(unit.max_hp - 10, unit.current_hp);
+    EXPECT_TRUE(unit.is_alive);
+}
+
+static void test_burn_deals_damage_at_turn_start(void)
+{
+    BattleUnit unit = battle_create_unit(1, hero_get_template(1), BATTLE_SIDE_PLAYER);
+
+    battle_apply_burn(&unit, 6, 2);
+    EXPECT_TRUE(battle_process_status_start(&unit, NULL));
+
+    EXPECT_EQ(unit.max_hp - 6, unit.current_hp);
+    EXPECT_EQ(1, unit.burn_turns);
+}
+
+static void test_stun_skips_action_at_turn_start(void)
+{
+    BattleUnit unit = battle_create_unit(1, hero_get_template(1), BATTLE_SIDE_PLAYER);
+
+    battle_apply_stun(&unit, 1);
+
+    EXPECT_TRUE(!battle_process_status_start(&unit, NULL));
+    EXPECT_EQ(0, unit.stun_turns);
+}
+
 static void test_mitigated_damage_uses_resistance(void)
 {
     EXPECT_EQ(40, battle_calculate_mitigated_damage(50, 25));
@@ -229,6 +262,9 @@ int main(void)
 {
     test_damage_reduces_hp();
     test_damage_clamps_hp_and_kills_unit();
+    test_shield_absorbs_damage_before_hp();
+    test_burn_deals_damage_at_turn_start();
+    test_stun_skips_action_at_turn_start();
     test_mitigated_damage_uses_resistance();
     test_attack_damage_uses_armor();
     test_attack_damage_can_crit();

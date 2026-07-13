@@ -71,6 +71,43 @@ void logger_skill_heal(FILE *stream, const char *skill_name_text, const char *ta
     }
 }
 
+void logger_shield_gain(FILE *stream, const char *unit_name, int amount, int shield)
+{
+    if (stream != NULL)
+    {
+        fprintf(stream, "%s 获得 %d 点护盾，当前护盾 %d\n", unit_name, amount, shield);
+    }
+}
+
+void logger_shield_absorb(FILE *stream, const char *unit_name, int amount, int shield)
+{
+    if (stream != NULL)
+    {
+        fprintf(stream, "%s 的护盾吸收 %d 点伤害，剩余护盾 %d\n", unit_name, amount, shield);
+    }
+}
+
+void logger_burn(FILE *stream, const char *unit_name, int damage, int turns_left, int current_hp, int max_hp)
+{
+    if (stream != NULL)
+    {
+        fprintf(stream, "%s 受到灼烧 %d 点伤害，剩余 %d 回合，生命值 %d/%d\n",
+                unit_name,
+                damage,
+                turns_left,
+                current_hp,
+                max_hp);
+    }
+}
+
+void logger_stunned(FILE *stream, const char *unit_name, int turns_left)
+{
+    if (stream != NULL)
+    {
+        fprintf(stream, "%s 被眩晕，跳过行动，剩余 %d 回合\n", unit_name, turns_left);
+    }
+}
+
 void logger_move(FILE *stream, const char *unit_name, int from_row, int from_col, int to_row, int to_col)
 {
     if (stream != NULL)

@@ -43,6 +43,10 @@ typedef struct
     int healing;
     int execute_threshold_percent;
     int execute_bonus_damage;
+    int shield;
+    int burn_damage;
+    int burn_turns;
+    int stun_turns;
 } SkillDefinition;
 
 const char *skill_name(SkillId skill_id);

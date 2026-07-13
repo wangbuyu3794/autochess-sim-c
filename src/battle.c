@@ -48,6 +48,10 @@ BattleUnit battle_create_unit_at_star(int instance_id, const HeroTemplate *hero,
     unit.attack_range = hero != NULL ? hero->attack_range : 1;
     unit.current_mana = hero != NULL ? hero->initial_mana : 0;
     unit.max_mana = hero != NULL ? hero->max_mana : 0;
+    unit.shield = 0;
+    unit.burn_damage = 0;
+    unit.burn_turns = 0;
+    unit.stun_turns = 0;
     unit.skill_id = hero != NULL ? hero->skill_id : SKILL_NONE;
     unit.position = position;
     unit.is_alive = 1;
@@ -155,6 +159,8 @@ void battle_apply_trait_summary(BattleContext *context)
 
 void battle_apply_damage(BattleUnit *target, int damage)
 {
+    int absorbed = 0;
+
     if (target == NULL || target->is_alive == 0)
     {
         return;
@@ -165,6 +171,18 @@ void battle_apply_damage(BattleUnit *target, int damage)
         damage = 0;
     }
 
+    if (target->shield > 0 && damage > 0)
+    {
+        absorbed = target->shield < damage ? target->shield : damage;
+        target->shield -= absorbed;
+        damage -= absorbed;
+    }
+
+    if (damage <= 0)
+    {
+        return;
+    }
+
     target->current_hp -= damage;
 
     if (target->current_hp <= 0)
@@ -172,6 +190,76 @@ void battle_apply_damage(BattleUnit *target, int damage)
         target->current_hp = 0;
         target->is_alive = 0;
     }
+}
+
+void battle_add_shield(BattleUnit *unit, int amount)
+{
+    if (unit == NULL || unit->is_alive == 0 || amount <= 0)
+    {
+        return;
+    }
+
+    unit->shield += amount;
+}
+
+void battle_apply_burn(BattleUnit *unit, int damage, int turns)
+{
+    if (unit == NULL || unit->is_alive == 0 || damage <= 0 || turns <= 0)
+    {
+        return;
+    }
+
+    unit->burn_damage = damage;
+    if (turns > unit->burn_turns)
+    {
+        unit->burn_turns = turns;
+    }
+}
+
+void battle_apply_stun(BattleUnit *unit, int turns)
+{
+    if (unit == NULL || unit->is_alive == 0 || turns <= 0)
+    {
+        return;
+    }
+
+    if (turns > unit->stun_turns)
+    {
+        unit->stun_turns = turns;
+    }
+}
+
+int battle_process_status_start(BattleUnit *unit, FILE *log_stream)
+{
+    if (unit == NULL || unit->is_alive == 0)
+    {
+        return 0;
+    }
+
+    if (unit->burn_turns > 0 && unit->burn_damage > 0)
+    {
+        unit->burn_turns -= 1;
+        battle_apply_damage(unit, unit->burn_damage);
+        logger_burn(log_stream, unit->name, unit->burn_damage, unit->burn_turns, unit->current_hp, unit->max_hp);
+        if (unit->burn_turns == 0)
+        {
+            unit->burn_damage = 0;
+        }
+        if (unit->is_alive == 0)
+        {
+            logger_defeated(log_stream, unit->name);
+            return 0;
+        }
+    }
+
+    if (unit->stun_turns > 0)
+    {
+        unit->stun_turns -= 1;
+        logger_stunned(log_stream, unit->name, unit->stun_turns);
+        return 0;
+    }
+
+    return 1;
 }
 
 int battle_calculate_mitigated_damage(int raw_damage, int resistance)
@@ -455,6 +543,17 @@ BattleResult battle_run(BattleContext *context, FILE *log_stream)
 
             if (attacker->is_alive == 0)
             {
+                continue;
+            }
+
+            if (!battle_process_status_start(attacker, log_stream))
+            {
+                result = battle_check_result(context);
+                if (result != BATTLE_RESULT_ONGOING)
+                {
+                    logger_battle_end(log_stream, battle_result_name(result));
+                    return result;
+                }
                 continue;
             }
 

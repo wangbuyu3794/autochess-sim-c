@@ -64,6 +64,9 @@ static void test_skill_definitions_are_available(void)
     EXPECT_EQ(SKILL_DAMAGE_PHYSICAL, strike->damage_type);
     EXPECT_EQ(SKILL_DAMAGE_MAGICAL, fireball->damage_type);
     EXPECT_EQ(40, execute->execute_threshold_percent);
+    EXPECT_EQ(20, shield->shield);
+    EXPECT_EQ(6, fireball->burn_damage);
+    EXPECT_EQ(1, execute->stun_turns);
 }
 
 static void test_skill_definition_calculates_physical_damage(void)
@@ -144,6 +147,28 @@ static void test_iron_shield_heals_self_and_resets_mana(void)
     EXPECT_TRUE(skill_cast(&context, 0, 1, NULL));
     EXPECT_EQ(0, context.units[0].current_mana);
     EXPECT_EQ(85, context.units[0].current_hp);
+    EXPECT_EQ(20, context.units[0].shield);
+}
+
+static void test_fireball_applies_burn(void)
+{
+    BattleContext context = make_context_with_two_units(4, 1);
+
+    context.units[0].current_mana = context.units[0].max_mana;
+
+    EXPECT_TRUE(skill_cast(&context, 0, 1, NULL));
+    EXPECT_EQ(6, context.units[1].burn_damage);
+    EXPECT_EQ(2, context.units[1].burn_turns);
+}
+
+static void test_execute_strike_applies_stun(void)
+{
+    BattleContext context = make_context_with_two_units(10, 1);
+
+    context.units[0].current_mana = context.units[0].max_mana;
+
+    EXPECT_TRUE(skill_cast(&context, 0, 1, NULL));
+    EXPECT_EQ(1, context.units[1].stun_turns);
 }
 
 static void test_skill_does_not_cast_without_full_mana(void)
@@ -182,6 +207,8 @@ int main(void)
     test_execute_strike_bonus_does_not_trigger_on_high_hp();
     test_fireball_deals_damage_and_resets_mana();
     test_iron_shield_heals_self_and_resets_mana();
+    test_fireball_applies_burn();
+    test_execute_strike_applies_stun();
     test_skill_does_not_cast_without_full_mana();
     test_battle_attack_gains_mana_and_eventually_casts();
 
