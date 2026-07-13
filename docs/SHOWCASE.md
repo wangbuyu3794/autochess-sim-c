@@ -42,6 +42,7 @@ ctest --test-dir build-mingw
 
 ```text
 guide
+overview
 shop
 buy 1
 bench
@@ -52,7 +53,7 @@ equipfit 0
 ready
 ```
 
-适合说明：终端版已经支持运营、羁绊、装备和战斗日志。
+适合说明：终端版已经支持机制总览、运营、羁绊、装备和战斗日志。
 
 ### 4. 展示图形版
 

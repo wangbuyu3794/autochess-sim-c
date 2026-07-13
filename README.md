@@ -175,6 +175,7 @@ ctest --test-dir build-mingw
 
 ```text
 help
+overview
 guide
 status
 shop

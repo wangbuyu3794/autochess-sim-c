@@ -164,6 +164,7 @@ void command_print_help(FILE *output)
 
     fprintf(output, "准备阶段命令：\n");
     fprintf(output, "  help       查看命令\n");
+    fprintf(output, "  overview   查看当前机制总览\n");
     fprintf(output, "  guide      查看推荐操作流程\n");
     fprintf(output, "  status     查看玩家状态\n");
     fprintf(output, "  shop       查看商店\n");
@@ -203,6 +204,25 @@ static void command_print_guide(FILE *output)
     fprintf(output, "  5. buyxp 升级，lock 保留商店，refresh 主动刷新。\n");
     fprintf(output, "  6. auto 自动补位和装备，ready 进入战斗。\n");
     fprintf(output, "终端版目标：当前版本已经完成核心战斗、运营、装备、AI 和交互命令闭环。\n");
+}
+
+static int command_count_equipment_total(const Player *player)
+{
+    size_t count = 0;
+    const EquipmentTemplate *templates = equipment_get_templates(&count);
+    int total = 0;
+
+    if (player == 0)
+    {
+        return 0;
+    }
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        total += player_count_equipment(player, templates[i].id);
+    }
+
+    return total;
 }
 
 void command_print_shop(const GameContext *game, FILE *output)
@@ -531,6 +551,66 @@ void command_print_roster(const GameContext *game, FILE *output)
     }
 }
 
+static void command_print_overview(const GameContext *game, FILE *output)
+{
+    TraitSummary summary;
+    int active_traits = 0;
+    int next_income = 0;
+
+    if (game == 0 || output == 0)
+    {
+        return;
+    }
+
+    command_build_deployed_trait_summary(&game->player, &summary);
+    next_income = economy_calculate_round_income(game->player.gold);
+
+    for (int trait = TRAIT_GUARDIAN; trait <= TRAIT_SHADOW; ++trait)
+    {
+        if (trait_summary_get_count(&summary, (TraitId)trait) > 0)
+        {
+            active_traits += 1;
+        }
+    }
+
+    fprintf(output, "机制总览：\n");
+    fprintf(output,
+            "  回合：第 %d 回合准备阶段，目标是在战斗前完成购买、部署、装备和经济选择。\n",
+            game->current_round + 1);
+    fprintf(output,
+            "  生命：玩家 %d，敌方 %d；生命归零则失败。\n",
+            game->player.health,
+            game->enemy.health);
+    fprintf(output,
+            "  经济：金币 %d，下回合预计收入 %d；可 refresh 刷新、lock 锁店、buyxp 升级。\n",
+            game->player.gold,
+            next_income);
+    fprintf(output,
+            "  等级：%d 级，经验 %d/%d；当前最多上场 %d 个单位。\n",
+            game->player.level,
+            game->player.experience,
+            game->player.level >= AUTOCHESS_MAX_LEVEL ? 0 : AUTOCHESS_EXP_PER_LEVEL,
+            game->player.level);
+    fprintf(output,
+            "  商店：%s，5 个槽位；odds 看概率，pool 看英雄池，buy <1-5> 购买。\n",
+            game->player_shop.is_locked ? "已锁定" : "未锁定");
+    fprintf(output,
+            "  阵容：拥有 %d 个单位，已上场 %d/%d；deploy/move/recall 调整站位。\n",
+            player_count_active_units(&game->player),
+            player_count_deployed_units(&game->player),
+            game->player.level);
+    fprintf(output,
+            "  羁绊：当前有 %d 类上场羁绊；traits 查看触发档位和下一档差距。\n",
+            active_traits);
+    fprintf(output,
+            "  装备：库存 %d 件；items 查看属性，equip/equipfit/unequip 管理装备。\n",
+            command_count_equipment_total(&game->player));
+    fprintf(output,
+            "  战斗：ready 后自动索敌、移动、普攻、释放技能并结算胜负和装备奖励。\n");
+    fprintf(output,
+            "建议流程：overview -> shop -> buy -> bench -> deploy/auto -> traits/items -> ready。\n");
+}
+
 CommandResult command_execute_preparation(GameContext *game, const char *line, FILE *output)
 {
     char buffer[128];
@@ -563,6 +643,12 @@ CommandResult command_execute_preparation(GameContext *game, const char *line, F
     if (strcmp(command, "guide") == 0)
     {
         command_print_guide(out);
+        return COMMAND_RESULT_CONTINUE;
+    }
+
+    if (strcmp(command, "overview") == 0)
+    {
+        command_print_overview(game, out);
         return COMMAND_RESULT_CONTINUE;
     }
 
