@@ -66,6 +66,9 @@ if(AUTOCHESS_BUILD_GUI)
     )
 
     target_link_libraries(autochess_gui PRIVATE autochess_core raylib)
+    if(WIN32)
+        target_link_libraries(autochess_gui PRIVATE winmm)
+    endif()
     autochess_enable_warnings(autochess_gui)
 endif()
 

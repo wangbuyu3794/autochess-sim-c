@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- 完成 Windows + MinGW 本地 raylib 安装验证。
+- GUI 目标在 Windows 下补充 `winmm` 链接项。
+- README 更新为当前本地 raylib 安装路径的 GUI 构建命令。
 - 进入 `V2.2 Board View`。
 - 图形版骨架开始读取真实 `GameContext` 演示局面。
 - GUI 会绘制玩家和敌方已部署单位。

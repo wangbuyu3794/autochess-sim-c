@@ -209,13 +209,15 @@ quit
 
 `V2.1` 开始提供 raylib 图形版骨架。默认不构建图形版，避免影响终端版。
 
-安装 raylib 后，可以使用：
+如果按本项目推荐方式把 raylib 安装到 `D:\Desktop\File\Project\code\_deps\raylib-install`，可以使用：
 
 ```powershell
-cmake -S . -B build-gui -G "MinGW Makefiles" -DAUTOCHESS_BUILD_GUI=ON
+cmake -S . -B build-gui -G "MinGW Makefiles" -DAUTOCHESS_BUILD_GUI=ON -DCMAKE_PREFIX_PATH=D:\Desktop\File\Project\code\_deps\raylib-install
 cmake --build build-gui
 .\build-gui\autochess_gui.exe
 ```
+
+如果 raylib 安装在其他位置，把 `CMAKE_PREFIX_PATH` 改成你的 raylib 安装目录即可。
 
 如果没有安装 raylib，继续使用普通构建即可：
 
