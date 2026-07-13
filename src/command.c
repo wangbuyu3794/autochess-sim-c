@@ -164,6 +164,7 @@ void command_print_help(FILE *output)
 
     fprintf(output, "准备阶段命令：\n");
     fprintf(output, "  help       查看命令\n");
+    fprintf(output, "  guide      查看推荐操作流程\n");
     fprintf(output, "  status     查看玩家状态\n");
     fprintf(output, "  shop       查看商店\n");
     fprintf(output, "  odds       查看当前等级商店概率\n");
@@ -185,6 +186,23 @@ void command_print_help(FILE *output)
     fprintf(output, "  auto       自动部署当前最强单位\n");
     fprintf(output, "  ready      结束准备并进入战斗\n");
     fprintf(output, "  quit       退出本局\n");
+}
+
+static void command_print_guide(FILE *output)
+{
+    if (output == 0)
+    {
+        return;
+    }
+
+    fprintf(output, "推荐流程：\n");
+    fprintf(output, "  1. shop 查看商店，odds 查看当前等级概率，pool 查看英雄池。\n");
+    fprintf(output, "  2. buy <1-5> 购买英雄，bench/status 查看阵容和经济。\n");
+    fprintf(output, "  3. deploy/move/recall 调整站位，traits 查看羁绊。\n");
+    fprintf(output, "  4. items 查看装备，equip/equipfit/unequip 管理装备。\n");
+    fprintf(output, "  5. buyxp 升级，lock 保留商店，refresh 主动刷新。\n");
+    fprintf(output, "  6. auto 自动补位和装备，ready 进入战斗。\n");
+    fprintf(output, "终端版目标：当前版本已经完成核心战斗、运营、装备、AI 和交互命令闭环。\n");
 }
 
 void command_print_shop(const GameContext *game, FILE *output)
@@ -539,6 +557,12 @@ CommandResult command_execute_preparation(GameContext *game, const char *line, F
     if (strcmp(command, "help") == 0 || strcmp(command, "?") == 0)
     {
         command_print_help(out);
+        return COMMAND_RESULT_CONTINUE;
+    }
+
+    if (strcmp(command, "guide") == 0)
+    {
+        command_print_guide(out);
         return COMMAND_RESULT_CONTINUE;
     }
 

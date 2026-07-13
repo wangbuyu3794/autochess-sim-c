@@ -69,6 +69,7 @@ static void test_odds_and_pool_commands(void)
 
     EXPECT_EQ(COMMAND_RESULT_CONTINUE, command_execute_preparation(&game, "odds", NULL));
     EXPECT_EQ(COMMAND_RESULT_CONTINUE, command_execute_preparation(&game, "pool", NULL));
+    EXPECT_EQ(COMMAND_RESULT_CONTINUE, command_execute_preparation(&game, "guide", NULL));
 }
 
 static void test_traits_command(void)
