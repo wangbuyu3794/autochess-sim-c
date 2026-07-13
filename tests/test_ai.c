@@ -97,6 +97,20 @@ static void test_ai_respects_deploy_limit(void)
     EXPECT_EQ(2, player_count_deployed_units(&enemy));
 }
 
+static void test_ai_equips_best_deployed_units(void)
+{
+    Player enemy;
+    player_init(&enemy, 2, BATTLE_SIDE_ENEMY);
+
+    player_add_unit_to_bench(&enemy, unit_create(101, 1));
+    player_add_unit_to_bench(&enemy, unit_create(102, 6));
+    ai_deploy_best_units(&enemy);
+
+    EXPECT_TRUE(ai_equip_best_units(&enemy) > 0);
+    EXPECT_TRUE(enemy.units[1].equipment_id != EQUIPMENT_NONE);
+    EXPECT_EQ(0, player_count_equipment(&enemy, EQUIPMENT_BROADSWORD));
+}
+
 static void test_ai_run_preparation_buys_and_deploys(void)
 {
     Player enemy;
@@ -109,6 +123,7 @@ static void test_ai_run_preparation_buys_and_deploys(void)
 
     EXPECT_TRUE(player_count_active_units(&enemy) > 0);
     EXPECT_TRUE(player_count_deployed_units(&enemy) > 0);
+    EXPECT_TRUE(ai_equip_best_units(&enemy) >= 0);
 }
 
 int main(void)
@@ -118,6 +133,7 @@ int main(void)
     test_buy_best_affordable_unit_uses_shop_and_bench();
     test_ai_deploys_enemy_units_to_enemy_area();
     test_ai_respects_deploy_limit();
+    test_ai_equips_best_deployed_units();
     test_ai_run_preparation_buys_and_deploys();
 
     if (g_failed_tests == 0)

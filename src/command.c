@@ -733,6 +733,7 @@ CommandResult command_execute_preparation(GameContext *game, const char *line, F
     if (strcmp(command, "auto") == 0)
     {
         ai_deploy_best_units(&game->player);
+        ai_equip_best_units(&game->player);
         fprintf(out, "已自动部署当前可上场单位。\n");
         command_print_roster(game, out);
         return COMMAND_RESULT_CONTINUE;
@@ -741,6 +742,7 @@ CommandResult command_execute_preparation(GameContext *game, const char *line, F
     if (strcmp(command, "ready") == 0)
     {
         ai_deploy_best_units(&game->player);
+        ai_equip_best_units(&game->player);
         return COMMAND_RESULT_READY;
     }
 

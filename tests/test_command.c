@@ -123,6 +123,7 @@ static void test_auto_command_deploys_units(void)
 
     EXPECT_EQ(COMMAND_RESULT_CONTINUE, command_execute_preparation(&game, "auto", NULL));
     EXPECT_EQ(1, player_count_deployed_units(&game.player));
+    EXPECT_TRUE(game.player.units[0].equipment_id != EQUIPMENT_NONE);
 }
 
 static void test_deploy_command_places_bench_unit(void)

@@ -1,6 +1,7 @@
 #include "ai.h"
 
 #include "economy.h"
+#include "equipment.h"
 
 static const BoardPosition PLAYER_DEPLOY_POSITIONS[] = {
     {6, 3},
@@ -172,6 +173,72 @@ void ai_deploy_best_units(Player *player)
     }
 }
 
+static int ai_find_best_deployed_unit_without_equipment(const Player *player)
+{
+    int best_index = -1;
+    int best_score = -1;
+
+    if (player == 0)
+    {
+        return -1;
+    }
+
+    for (int i = 0; i < player->unit_count; ++i)
+    {
+        const Unit *unit = &player->units[i];
+        int score = -1;
+
+        if (!unit_is_deployed(unit) || unit->equipment_id != EQUIPMENT_NONE)
+        {
+            continue;
+        }
+
+        score = ai_score_unit(unit);
+        if (score > best_score)
+        {
+            best_score = score;
+            best_index = i;
+        }
+    }
+
+    return best_index;
+}
+
+int ai_equip_best_units(Player *player)
+{
+    int equipped_count = 0;
+    size_t equipment_count = 0;
+    const EquipmentTemplate *equipment_templates = equipment_get_templates(&equipment_count);
+
+    if (player == 0)
+    {
+        return 0;
+    }
+
+    for (size_t i = 0; i < equipment_count; ++i)
+    {
+        EquipmentId equipment_id = equipment_templates[i].id;
+
+        while (player_count_equipment(player, equipment_id) > 0)
+        {
+            int unit_index = ai_find_best_deployed_unit_without_equipment(player);
+            if (unit_index < 0)
+            {
+                return equipped_count;
+            }
+
+            if (player_equip_unit(player, unit_index, equipment_id) != PLAYER_OK)
+            {
+                break;
+            }
+
+            equipped_count += 1;
+        }
+    }
+
+    return equipped_count;
+}
+
 void ai_run_preparation(Player *player, Shop *shop, int *next_instance_id)
 {
     if (player == 0 || shop == 0 || next_instance_id == 0)
@@ -187,4 +254,5 @@ void ai_run_preparation(Player *player, Shop *shop, int *next_instance_id)
     }
 
     ai_deploy_best_units(player);
+    ai_equip_best_units(player);
 }
