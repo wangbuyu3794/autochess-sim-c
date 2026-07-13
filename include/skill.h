@@ -29,7 +29,8 @@ typedef enum
 {
     SKILL_TARGET_NONE = 0,
     SKILL_TARGET_SELF = 1,
-    SKILL_TARGET_ENEMY = 2
+    SKILL_TARGET_ENEMY = 2,
+    SKILL_TARGET_LOWEST_HP_ALLY = 3
 } SkillTargetType;
 
 typedef struct
@@ -47,6 +48,7 @@ typedef struct
     int burn_damage;
     int burn_turns;
     int stun_turns;
+    int splash_percent;
 } SkillDefinition;
 
 const char *skill_name(SkillId skill_id);

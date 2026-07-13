@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(AutoChessC
-    VERSION 1.14.0
+    VERSION 1.15.0
     DESCRIPTION "A terminal auto chess simulator for learning C"
     LANGUAGES C
 )

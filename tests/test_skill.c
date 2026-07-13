@@ -105,6 +105,7 @@ static void test_holy_guard_heals_more_than_iron_shield(void)
     const SkillDefinition *definition = skill_get_definition(SKILL_HOLY_GUARD);
 
     EXPECT_EQ(55, skill_calculate_healing(definition));
+    EXPECT_EQ(SKILL_TARGET_LOWEST_HP_ALLY, definition->target_type);
 }
 
 static void test_execute_strike_bonus_triggers_on_low_hp(void)
@@ -171,6 +172,47 @@ static void test_execute_strike_applies_stun(void)
     EXPECT_EQ(1, context.units[1].stun_turns);
 }
 
+static void test_holy_guard_targets_lowest_hp_ally(void)
+{
+    BattleContext context = {0};
+    BoardPosition caster_position = {7, 3};
+    BoardPosition ally_position = {7, 2};
+    BoardPosition enemy_position = {6, 3};
+
+    battle_add_unit(&context, battle_create_unit_at(1, hero_get_template(9), BATTLE_SIDE_PLAYER, caster_position));
+    battle_add_unit(&context, battle_create_unit_at(2, hero_get_template(1), BATTLE_SIDE_PLAYER, ally_position));
+    battle_add_unit(&context, battle_create_unit_at(101, hero_get_template(4), BATTLE_SIDE_ENEMY, enemy_position));
+
+    context.units[0].current_mana = context.units[0].max_mana;
+    context.units[1].current_hp = 40;
+
+    EXPECT_TRUE(skill_cast(&context, 0, 2, NULL));
+    EXPECT_EQ(95, context.units[1].current_hp);
+    EXPECT_EQ(35, context.units[1].shield);
+    EXPECT_EQ(190, context.units[0].current_hp);
+}
+
+static void test_fireball_splashes_to_adjacent_enemy(void)
+{
+    BattleContext context = {0};
+    BoardPosition caster_position = {7, 3};
+    BoardPosition primary_position = {6, 3};
+    BoardPosition splash_position = {6, 4};
+    BoardPosition far_position = {4, 4};
+
+    battle_add_unit(&context, battle_create_unit_at(1, hero_get_template(4), BATTLE_SIDE_PLAYER, caster_position));
+    battle_add_unit(&context, battle_create_unit_at(101, hero_get_template(1), BATTLE_SIDE_ENEMY, primary_position));
+    battle_add_unit(&context, battle_create_unit_at(102, hero_get_template(2), BATTLE_SIDE_ENEMY, splash_position));
+    battle_add_unit(&context, battle_create_unit_at(103, hero_get_template(2), BATTLE_SIDE_ENEMY, far_position));
+
+    context.units[0].current_mana = context.units[0].max_mana;
+
+    EXPECT_TRUE(skill_cast(&context, 0, 1, NULL));
+    EXPECT_EQ(90, context.units[1].current_hp);
+    EXPECT_EQ(85, context.units[2].current_hp);
+    EXPECT_EQ(105, context.units[3].current_hp);
+}
+
 static void test_skill_does_not_cast_without_full_mana(void)
 {
     BattleContext context = make_context_with_two_units(4, 1);
@@ -209,6 +251,8 @@ int main(void)
     test_iron_shield_heals_self_and_resets_mana();
     test_fireball_applies_burn();
     test_execute_strike_applies_stun();
+    test_holy_guard_targets_lowest_hp_ally();
+    test_fireball_splashes_to_adjacent_enemy();
     test_skill_does_not_cast_without_full_mana();
     test_battle_attack_gains_mana_and_eventually_casts();
 
