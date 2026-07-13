@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- 进入 `V2.7 Equipment Insight`。
+- GUI 装备库存会在选中单位后显示每件装备的适配分。
+- GUI 会高亮当前库存中对选中单位评分最高的装备。
+- 装备适配分复用 `ai_score_equipment_for_unit`，不新增独立 GUI 评分规则。
+- 当前已穿戴装备会在库存列表中标记为已穿。
 - 进入 `V2.6 Equipment Interaction`。
 - GUI 左侧信息面板新增装备库存列表。
 - 图形版支持点击装备库存，为当前选中的玩家单位穿戴或替换装备。
