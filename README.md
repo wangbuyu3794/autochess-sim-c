@@ -18,6 +18,7 @@
 第一批文档用于确定项目边界、版本路线和协作规则：
 
 - [docs/SHOWCASE.md](docs/SHOWCASE.md)：作品展示说明
+- [docs/GUI_DESIGN.md](docs/GUI_DESIGN.md)：V2.0 图形界面设计草案
 - [docs/DESIGN.md](docs/DESIGN.md)：整体设计方案
 - [docs/ROADMAP.md](docs/ROADMAP.md)：版本路线
 - [docs/RULES.md](docs/RULES.md)：核心游戏规则

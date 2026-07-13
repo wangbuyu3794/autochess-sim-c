@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- 进入 `V2.0 Graphical Version Design`。
+- 新增 `docs/GUI_DESIGN.md`，规划 raylib 图形版窗口布局、交互方式和阶段路线。
+- README 增加图形界面设计文档入口。
+- 路线图和设计文档补充 V2.0 图形界面规划说明。
 - 进入 `V1.31 Showcase Polish`。
 - README 新增快速体验、功能亮点、学习重点和项目结构说明。
 - 新增 `docs/SHOWCASE.md`，用于作品展示和演示说明。
