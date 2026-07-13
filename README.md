@@ -17,10 +17,77 @@
 
 第一批文档用于确定项目边界、版本路线和协作规则：
 
+- [docs/SHOWCASE.md](docs/SHOWCASE.md)：作品展示说明
 - [docs/DESIGN.md](docs/DESIGN.md)：整体设计方案
 - [docs/ROADMAP.md](docs/ROADMAP.md)：版本路线
 - [docs/RULES.md](docs/RULES.md)：核心游戏规则
 - [docs/CHANGELOG.md](docs/CHANGELOG.md)：变更记录
+
+## 快速体验
+
+Windows PowerShell + MinGW：
+
+```powershell
+cmake -S . -B build-mingw -G "MinGW Makefiles"
+cmake --build build-mingw
+ctest --test-dir build-mingw
+.\build-mingw\autochess.exe --interactive
+```
+
+不进入交互，快速跑一局：
+
+```powershell
+.\build-mingw\autochess.exe --rounds 5 --quiet
+```
+
+进入交互后，可以先输入：
+
+```text
+guide
+shop
+buy 1
+auto
+ready
+```
+
+## 功能亮点
+
+- 规则闭环：从准备阶段、商店运营、布阵到自动战斗和胜负结算。
+- 模块清晰：英雄、单位、玩家、棋盘、商店、经济、羁绊、技能、装备、AI、命令系统分离。
+- 数据驱动：技能、装备、英雄模板都尽量用表描述，便于扩展。
+- 中文友好：终端命令、战斗日志、文档说明面向中文学习者。
+- 可测试：项目包含 11 组基础测试，覆盖战斗、棋盘、玩家、商店、技能、AI、命令等模块。
+- 可继续扩展：终端版完成后，可以进入 raylib 图形界面阶段。
+
+## 学习重点
+
+这个项目适合练习：
+
+- C 语言结构体和枚举；
+- 固定数组和索引管理；
+- 模块化头文件和源文件拆分；
+- 命令行参数和字符串解析；
+- 游戏状态机；
+- 简单 AI 评分函数；
+- 单元测试和回归验证；
+- 文档化和版本路线管理。
+
+## 项目结构
+
+```text
+AutoChess-C/
+├── CMakeLists.txt
+├── README.md
+├── docs/
+│   ├── SHOWCASE.md
+│   ├── DESIGN.md
+│   ├── ROADMAP.md
+│   ├── RULES.md
+│   └── CHANGELOG.md
+├── include/
+├── src/
+└── tests/
+```
 
 ## 终端版完成范围
 
@@ -67,7 +134,7 @@
 - 输出中文战斗日志；
 - 添加基础测试。
 
-## 构建和运行
+## 构建和运行详情
 
 ```bash
 cmake -S . -B build

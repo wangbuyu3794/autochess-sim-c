@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- 进入 `V1.31 Showcase Polish`。
+- README 新增快速体验、功能亮点、学习重点和项目结构说明。
+- 新增 `docs/SHOWCASE.md`，用于作品展示和演示说明。
+- 展示文档明确当前终端版边界和后续图形界面方向。
 - 进入 `V1.30 Terminal Milestone`。
 - 项目版本号升级为 `1.30.0`。
 - 准备阶段新增 `guide` 命令，用于查看推荐操作流程。
