@@ -197,12 +197,13 @@ static void command_print_guide(FILE *output)
     }
 
     fprintf(output, "推荐流程：\n");
-    fprintf(output, "  1. shop 查看商店，odds 查看当前等级概率，pool 查看英雄池。\n");
-    fprintf(output, "  2. buy <1-5> 购买英雄，bench/status 查看阵容和经济。\n");
-    fprintf(output, "  3. deploy/move/recall 调整站位，traits 查看羁绊。\n");
-    fprintf(output, "  4. items 查看装备，equip/equipfit/unequip 管理装备。\n");
-    fprintf(output, "  5. buyxp 升级，lock 保留商店，refresh 主动刷新。\n");
-    fprintf(output, "  6. auto 自动补位和装备，ready 进入战斗。\n");
+    fprintf(output, "  1. overview 查看机制总览，理解回合、经济、阵容、羁绊、装备和战斗。\n");
+    fprintf(output, "  2. shop 查看商店，odds 查看当前等级概率，pool 查看英雄池。\n");
+    fprintf(output, "  3. buy <1-5> 购买英雄，bench/status 查看阵容和经济。\n");
+    fprintf(output, "  4. deploy/move/recall 调整站位，traits 查看羁绊。\n");
+    fprintf(output, "  5. items 查看装备，equip/equipfit/unequip 管理装备。\n");
+    fprintf(output, "  6. buyxp 升级，lock 保留商店，refresh 主动刷新。\n");
+    fprintf(output, "  7. auto 自动补位和装备，ready 进入战斗。\n");
     fprintf(output, "终端版目标：当前版本已经完成核心战斗、运营、装备、AI 和交互命令闭环。\n");
 }
 

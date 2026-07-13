@@ -169,10 +169,10 @@ int main(void)
 
     if (g_failed_tests == 0)
     {
-        printf("All ai tests passed.\n");
+        printf("All strategy tests passed.\n");
         return 0;
     }
 
-    printf("%d ai test(s) failed.\n", g_failed_tests);
+    printf("%d strategy test(s) failed.\n", g_failed_tests);
     return 1;
 }

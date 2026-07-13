@@ -128,12 +128,12 @@ add_executable(test_skill
 target_link_libraries(test_skill PRIVATE autochess_core)
 autochess_enable_warnings(test_skill)
 
-add_executable(test_ai
-    tests/test_ai.c
+add_executable(test_bot
+    tests/test_strategy.c
 )
 
-target_link_libraries(test_ai PRIVATE autochess_core)
-autochess_enable_warnings(test_ai)
+target_link_libraries(test_bot PRIVATE autochess_core)
+autochess_enable_warnings(test_bot)
 
 add_executable(test_game
     tests/test_game.c
@@ -158,6 +158,6 @@ add_test(NAME shop_tests COMMAND test_shop)
 add_test(NAME merge_tests COMMAND test_merge)
 add_test(NAME trait_tests COMMAND test_trait)
 add_test(NAME skill_tests COMMAND test_skill)
-add_test(NAME ai_tests COMMAND test_ai)
+add_test(NAME bot_tests COMMAND test_bot)
 add_test(NAME game_tests COMMAND test_game)
 add_test(NAME command_tests COMMAND test_command)

@@ -138,3 +138,9 @@ gui_main  raylib 图形版入口
 ## 当前完成状态
 
 `V3.0 Showcase Release` 是当前展示版终点。后续如果继续开发，建议作为维护阶段或新路线处理，而不是继续拉长当前收束版本。
+
+最终结业验收请参考：
+
+```text
+docs/GRADUATION.md
+```
