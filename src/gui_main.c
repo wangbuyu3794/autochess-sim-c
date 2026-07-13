@@ -1,6 +1,7 @@
 #include "raylib.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #include "ai.h"
 #include "board.h"
@@ -27,7 +28,9 @@ enum
     GUI_CARD_GAP = 8,
     GUI_BENCH_X = 24,
     GUI_SHOP_X = 824,
-    GUI_BOTTOM_Y = 604
+    GUI_BOTTOM_Y = 604,
+    GUI_BATTLE_LOG_LINES = 7,
+    GUI_BATTLE_LOG_LINE_LENGTH = 180
 };
 
 typedef struct
@@ -67,8 +70,15 @@ typedef struct
 
 typedef struct
 {
+    int line_count;
+    char lines[GUI_BATTLE_LOG_LINES][GUI_BATTLE_LOG_LINE_LENGTH];
+} GuiBattleLog;
+
+typedef struct
+{
     GuiSelection selection;
     GuiBattleSummary battle;
+    GuiBattleLog battle_log;
     EquipmentId focused_equipment;
     char message[160];
 } GuiState;
@@ -84,7 +94,10 @@ static const char *GUI_FONT_TEXT =
     "大剑守护背心法力宝石暴击手套无"
     "：。，或右侧按钮操作已花费刷新解游戏结束模板缺失暂时只能预览推荐拥有当前图例编号费用"
     "区域信息整理生成尚未己方请先上的获得风库存穿戴替换不足可点击给选中单位"
-    "适配分最高已穿洞察显示详情主要适合输出前排施法暴击生命攻击初始爆伤依赖技能型";
+    "适配分最高已穿洞察显示详情主要适合输出前排施法暴击生命攻击初始爆伤依赖技能型"
+    "日志过程捕获条玩家敌方阵容铁卫斩锋林弓火苗影刃岩甲岚弩符法曦盾夜刺"
+    "释放目标造成点伤害剩余值被击败移动到阻挡原地等待灼烧眩晕跳过行动治疗当前护盾吸收"
+    "铁壁护盾破势斩连珠箭火球术秘法箭圣光守护终结斩获得";
 
 static void gui_init_resources(void)
 {
@@ -176,6 +189,74 @@ static void gui_clear_selection(GuiState *state)
     state->selection.position.col = -1;
 }
 
+static void gui_clear_battle_log(GuiState *state)
+{
+    if (state == 0)
+    {
+        return;
+    }
+
+    state->battle_log.line_count = 0;
+    for (int i = 0; i < GUI_BATTLE_LOG_LINES; ++i)
+    {
+        state->battle_log.lines[i][0] = '\0';
+    }
+}
+
+static void gui_add_battle_log_line(GuiState *state, const char *line)
+{
+    int target_index = 0;
+
+    if (state == 0 || line == 0 || line[0] == '\0')
+    {
+        return;
+    }
+
+    if (state->battle_log.line_count >= GUI_BATTLE_LOG_LINES)
+    {
+        for (int i = 1; i < GUI_BATTLE_LOG_LINES; ++i)
+        {
+            snprintf(state->battle_log.lines[i - 1], GUI_BATTLE_LOG_LINE_LENGTH, "%s", state->battle_log.lines[i]);
+        }
+        target_index = GUI_BATTLE_LOG_LINES - 1;
+    }
+    else
+    {
+        target_index = state->battle_log.line_count;
+        state->battle_log.line_count += 1;
+    }
+
+    snprintf(state->battle_log.lines[target_index], GUI_BATTLE_LOG_LINE_LENGTH, "%s", line);
+}
+
+static void gui_capture_battle_log(GuiState *state, FILE *log_stream)
+{
+    char line[GUI_BATTLE_LOG_LINE_LENGTH];
+
+    gui_clear_battle_log(state);
+
+    if (state == 0)
+    {
+        return;
+    }
+
+    if (log_stream == 0)
+    {
+        gui_add_battle_log_line(state, "战斗日志捕获失败。");
+        return;
+    }
+
+    rewind(log_stream);
+    while (fgets(line, sizeof(line), log_stream) != 0)
+    {
+        line[strcspn(line, "\r\n")] = '\0';
+        if (line[0] != '\0')
+        {
+            gui_add_battle_log_line(state, line);
+        }
+    }
+}
+
 static void gui_init_state(GuiState *state)
 {
     if (state == 0)
@@ -195,8 +276,9 @@ static void gui_init_state(GuiState *state)
     state->battle.enemy_deployed = 0;
     state->battle.reward_equipment = EQUIPMENT_NONE;
     state->battle.reward_side = BATTLE_SIDE_PLAYER;
+    gui_clear_battle_log(state);
     state->focused_equipment = EQUIPMENT_NONE;
-    gui_set_message(state, "V2.8：点击装备可查看详情，并给选中单位穿戴。");
+    gui_set_message(state, "V2.9：战斗后可查看最近战斗日志。");
 }
 
 static const char *gui_shop_result_label(ShopResult result)
@@ -725,6 +807,7 @@ static void gui_handle_button_click(GameContext *game, GuiState *state, int butt
     else if (button_index == 3)
     {
         BattleResult result = BATTLE_RESULT_DRAW;
+        FILE *battle_log_stream = 0;
         int player_hp_before = 0;
         int enemy_hp_before = 0;
         int player_deployed = 0;
@@ -739,7 +822,13 @@ static void gui_handle_button_click(GameContext *game, GuiState *state, int butt
         enemy_hp_before = game->enemy.health;
         player_deployed = player_count_deployed_units(&game->player);
         enemy_deployed = player_count_deployed_units(&game->enemy);
-        result = game_run_battle_phase(game, 0);
+        battle_log_stream = tmpfile();
+        result = game_run_battle_phase(game, battle_log_stream);
+        gui_capture_battle_log(state, battle_log_stream);
+        if (battle_log_stream != 0)
+        {
+            fclose(battle_log_stream);
+        }
         gui_record_battle_summary(state, game, result, player_hp_before, enemy_hp_before, player_deployed, enemy_deployed);
         gui_clear_selection(state);
         state->focused_equipment = EQUIPMENT_NONE;
@@ -1050,11 +1139,11 @@ static void gui_draw_info_panel(const GameContext *game, const GuiState *state)
     int active = game != 0 ? player_count_active_units(&game->player) : 0;
 
     gui_draw_panel(24, 78, 280, 500, "信息");
-    DrawText("V2.8 装备详情", 42, 122, 20, (Color){40, 48, 62, 255});
+    DrawText("V2.9 战斗日志", 42, 122, 20, (Color){40, 48, 62, 255});
     DrawText("商店：点击购买", 42, 158, 16, (Color){85, 94, 108, 255});
     DrawText("备战席：点击选择", 42, 184, 16, (Color){85, 94, 108, 255});
     DrawText("棋盘：部署或移动", 42, 210, 16, (Color){85, 94, 108, 255});
-    DrawText("装备：详情和适配分", 42, 236, 16, (Color){85, 94, 108, 255});
+    DrawText("战斗：显示最近日志", 42, 236, 16, (Color){85, 94, 108, 255});
 
     DrawText(TextFormat("拥有单位：%d", active), 42, 292, 16, (Color){55, 64, 78, 255});
     DrawText(TextFormat("已上场：%d/%d", deployed, game != 0 ? game->player.level : 0), 42, 318, 16, (Color){55, 64, 78, 255});
@@ -1099,6 +1188,24 @@ static void gui_draw_battle_summary(const GuiState *state, int x, int y)
     else
     {
         DrawText("奖励：无", x, y + 134, 16, (Color){85, 94, 108, 255});
+    }
+}
+
+static void gui_draw_battle_log(const GuiState *state, int x, int y)
+{
+    const GuiBattleLog *log = state != 0 ? &state->battle_log : 0;
+
+    DrawText("战斗日志", x, y, 16, (Color){40, 48, 62, 255});
+
+    if (log == 0 || log->line_count <= 0)
+    {
+        DrawText("战斗后显示最近过程。", x, y + 24, 13, (Color){85, 94, 108, 255});
+        return;
+    }
+
+    for (int i = 0; i < log->line_count; ++i)
+    {
+        DrawText(log->lines[i], x, y + 24 + i * 17, 13, (Color){85, 94, 108, 255});
     }
 }
 
@@ -1153,6 +1260,7 @@ static void gui_draw_detail_panel(const GameContext *game, const GuiState *state
 {
     const Unit *unit = gui_get_selected_unit(game, state);
     const HeroTemplate *hero = unit != 0 ? hero_get_template(unit->template_id) : 0;
+    int lower_panel_y = unit == 0 || hero == 0 ? 196 : 392;
 
     gui_draw_panel(790, 78, 460, 500, "单位 / 战斗");
 
@@ -1185,7 +1293,11 @@ static void gui_draw_detail_panel(const GameContext *game, const GuiState *state
     }
     else
     {
-        gui_draw_battle_summary(state, 820, 392);
+        gui_draw_battle_summary(state, 820, lower_panel_y);
+        if (lower_panel_y < 300)
+        {
+            gui_draw_battle_log(state, 820, lower_panel_y + 172);
+        }
     }
 }
 
@@ -1229,7 +1341,7 @@ int main(void)
     shop_refresh(&game.player_shop, game.player.level);
     gui_init_state(&state);
 
-    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C Equipment Detail");
+    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C Battle Log View");
     gui_init_resources();
     SetTargetFPS(60);
 
