@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- 进入 `V2.2 Board View`。
+- 图形版骨架开始读取真实 `GameContext` 演示局面。
+- GUI 会绘制玩家和敌方已部署单位。
+- GUI 新增备战席预览、商店预览和单位详情预览。
+- 图形版仍为只读展示，不引入鼠标交互。
 - 进入 `V2.1 GUI Skeleton`。
 - 新增可选 CMake 开关 `AUTOCHESS_BUILD_GUI`。
 - 新增 `src/gui_main.c`，作为 raylib 图形版实验入口。
