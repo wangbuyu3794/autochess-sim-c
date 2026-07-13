@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- 进入 `V2.4 Battle Visualization`。
+- GUI 新增最近一场战斗摘要状态。
+- Battle 按钮现在会记录战斗回合、胜负、双方生命变化和上场人数。
+- 右侧面板新增 Last Battle 区域，展示战斗摘要和奖励归属。
+- 战斗结果和装备奖励在 GUI 中使用英文标签，避免默认 raylib 字体中文显示问题。
 - 进入 `V2.3 Preparation Interaction`。
 - GUI 新增轻量选中状态和底部操作消息栏。
 - 图形版支持点击商店卡牌购买英雄。

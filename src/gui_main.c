@@ -46,7 +46,23 @@ typedef struct
 
 typedef struct
 {
+    int has_battle;
+    int round;
+    BattleResult result;
+    int player_hp_before;
+    int player_hp_after;
+    int enemy_hp_before;
+    int enemy_hp_after;
+    int player_deployed;
+    int enemy_deployed;
+    EquipmentId reward_equipment;
+    BattleSide reward_side;
+} GuiBattleSummary;
+
+typedef struct
+{
     GuiSelection selection;
+    GuiBattleSummary battle;
     char message[160];
 } GuiState;
 
@@ -97,7 +113,18 @@ static void gui_init_state(GuiState *state)
     }
 
     gui_clear_selection(state);
-    gui_set_message(state, "V2.3 ready: click shop, bench, board, or action buttons.");
+    state->battle.has_battle = 0;
+    state->battle.round = 0;
+    state->battle.result = BATTLE_RESULT_ONGOING;
+    state->battle.player_hp_before = 0;
+    state->battle.player_hp_after = 0;
+    state->battle.enemy_hp_before = 0;
+    state->battle.enemy_hp_after = 0;
+    state->battle.player_deployed = 0;
+    state->battle.enemy_deployed = 0;
+    state->battle.reward_equipment = EQUIPMENT_NONE;
+    state->battle.reward_side = BATTLE_SIDE_PLAYER;
+    gui_set_message(state, "V2.4 ready: click Battle to record a battle summary.");
 }
 
 static const char *gui_shop_result_label(ShopResult result)
@@ -162,6 +189,29 @@ static const char *gui_battle_result_label(BattleResult result)
     default:
         return "ongoing";
     }
+}
+
+static const char *gui_equipment_label(EquipmentId equipment_id)
+{
+    switch (equipment_id)
+    {
+    case EQUIPMENT_BROADSWORD:
+        return "Broadsword";
+    case EQUIPMENT_GUARDIAN_VEST:
+        return "Guardian Vest";
+    case EQUIPMENT_MANA_GEM:
+        return "Mana Gem";
+    case EQUIPMENT_CRIT_GLOVES:
+        return "Crit Gloves";
+    case EQUIPMENT_NONE:
+    default:
+        return "None";
+    }
+}
+
+static const char *gui_side_label(BattleSide side)
+{
+    return side == BATTLE_SIDE_PLAYER ? "player" : "enemy";
 }
 
 static Color gui_side_color(BattleSide side)
@@ -425,6 +475,43 @@ static void gui_prepare_next_round(GameContext *game)
     ai_run_preparation(&game->enemy, &game->enemy_shop, &game->enemy_next_instance_id);
 }
 
+static void gui_record_battle_summary(GuiState *state,
+                                      const GameContext *game,
+                                      BattleResult result,
+                                      int player_hp_before,
+                                      int enemy_hp_before,
+                                      int player_deployed,
+                                      int enemy_deployed)
+{
+    if (state == 0 || game == 0)
+    {
+        return;
+    }
+
+    state->battle.has_battle = 1;
+    state->battle.round = game->current_round;
+    state->battle.result = result;
+    state->battle.player_hp_before = player_hp_before;
+    state->battle.player_hp_after = game->player.health;
+    state->battle.enemy_hp_before = enemy_hp_before;
+    state->battle.enemy_hp_after = game->enemy.health;
+    state->battle.player_deployed = player_deployed;
+    state->battle.enemy_deployed = enemy_deployed;
+    state->battle.reward_equipment = EQUIPMENT_NONE;
+    state->battle.reward_side = BATTLE_SIDE_PLAYER;
+
+    if (result == BATTLE_RESULT_PLAYER_WIN)
+    {
+        state->battle.reward_equipment = game_select_round_equipment_reward(game->current_round);
+        state->battle.reward_side = BATTLE_SIDE_PLAYER;
+    }
+    else if (result == BATTLE_RESULT_ENEMY_WIN)
+    {
+        state->battle.reward_equipment = game_select_round_equipment_reward(game->current_round);
+        state->battle.reward_side = BATTLE_SIDE_ENEMY;
+    }
+}
+
 static void gui_handle_button_click(GameContext *game, GuiState *state, int button_index)
 {
     if (game == 0 || state == 0)
@@ -459,19 +546,28 @@ static void gui_handle_button_click(GameContext *game, GuiState *state, int butt
     else if (button_index == 3)
     {
         BattleResult result = BATTLE_RESULT_DRAW;
+        int player_hp_before = 0;
+        int enemy_hp_before = 0;
+        int player_deployed = 0;
+        int enemy_deployed = 0;
         if (game->result != GAME_RESULT_ONGOING)
         {
             gui_set_message(state, "Game is already over.");
             return;
         }
 
+        player_hp_before = game->player.health;
+        enemy_hp_before = game->enemy.health;
+        player_deployed = player_count_deployed_units(&game->player);
+        enemy_deployed = player_count_deployed_units(&game->enemy);
         result = game_run_battle_phase(game, 0);
+        gui_record_battle_summary(state, game, result, player_hp_before, enemy_hp_before, player_deployed, enemy_deployed);
         gui_clear_selection(state);
         if (game->result == GAME_RESULT_ONGOING)
         {
             gui_prepare_next_round(game);
         }
-        snprintf(state->message, sizeof(state->message), "Battle finished: %s.", gui_battle_result_label(result));
+        snprintf(state->message, sizeof(state->message), "Round %d battle: %s.", state->battle.round, gui_battle_result_label(result));
     }
 }
 
@@ -719,11 +815,11 @@ static void gui_draw_info_panel(const GameContext *game, const GuiState *state)
     int active = game != 0 ? player_count_active_units(&game->player) : 0;
 
     gui_draw_panel(24, 78, 280, 500, "Info");
-    DrawText("V2.3 Preparation", 42, 122, 20, (Color){40, 48, 62, 255});
+    DrawText("V2.4 Battle Summary", 42, 122, 20, (Color){40, 48, 62, 255});
     DrawText("Click shop: buy", 42, 158, 16, (Color){85, 94, 108, 255});
     DrawText("Click bench: select", 42, 184, 16, (Color){85, 94, 108, 255});
     DrawText("Click board: deploy/move", 42, 210, 16, (Color){85, 94, 108, 255});
-    DrawText("Board -> empty bench: recall", 42, 236, 16, (Color){85, 94, 108, 255});
+    DrawText("Battle: record summary", 42, 236, 16, (Color){85, 94, 108, 255});
 
     DrawText(TextFormat("Player units: %d", active), 42, 292, 16, (Color){55, 64, 78, 255});
     DrawText(TextFormat("Deployed: %d/%d", deployed, game != 0 ? game->player.level : 0), 42, 318, 16, (Color){55, 64, 78, 255});
@@ -739,12 +835,45 @@ static void gui_draw_info_panel(const GameContext *game, const GuiState *state)
     DrawText("H# hero id | * star | E equip", 42, 424, 16, (Color){85, 94, 108, 255});
 }
 
+static void gui_draw_battle_summary(const GuiState *state, int x, int y)
+{
+    const GuiBattleSummary *battle = state != 0 ? &state->battle : 0;
+    int player_damage = 0;
+    int enemy_damage = 0;
+
+    DrawText("Last Battle", x, y, 18, (Color){40, 48, 62, 255});
+
+    if (battle == 0 || !battle->has_battle)
+    {
+        DrawText("No battle has been played yet.", x, y + 30, 16, (Color){85, 94, 108, 255});
+        DrawText("Click Battle after arranging units.", x, y + 56, 16, (Color){85, 94, 108, 255});
+        return;
+    }
+
+    player_damage = battle->player_hp_before - battle->player_hp_after;
+    enemy_damage = battle->enemy_hp_before - battle->enemy_hp_after;
+
+    DrawText(TextFormat("Round %d | %s", battle->round, gui_battle_result_label(battle->result)), x, y + 30, 16, (Color){55, 64, 78, 255});
+    DrawText(TextFormat("Player HP %d -> %d  (-%d)", battle->player_hp_before, battle->player_hp_after, player_damage), x, y + 56, 16, (Color){55, 64, 78, 255});
+    DrawText(TextFormat("Enemy  HP %d -> %d  (-%d)", battle->enemy_hp_before, battle->enemy_hp_after, enemy_damage), x, y + 82, 16, (Color){55, 64, 78, 255});
+    DrawText(TextFormat("Units: player %d / enemy %d", battle->player_deployed, battle->enemy_deployed), x, y + 108, 16, (Color){55, 64, 78, 255});
+
+    if (battle->reward_equipment != EQUIPMENT_NONE)
+    {
+        DrawText(TextFormat("Reward: %s -> %s", gui_side_label(battle->reward_side), gui_equipment_label(battle->reward_equipment)), x, y + 134, 16, (Color){140, 100, 20, 255});
+    }
+    else
+    {
+        DrawText("Reward: none", x, y + 134, 16, (Color){85, 94, 108, 255});
+    }
+}
+
 static void gui_draw_detail_panel(const GameContext *game, const GuiState *state)
 {
     const Unit *unit = gui_get_selected_unit(game, state);
     const HeroTemplate *hero = unit != 0 ? hero_get_template(unit->template_id) : 0;
 
-    gui_draw_panel(790, 78, 460, 500, "Selected Unit");
+    gui_draw_panel(790, 78, 460, 500, "Unit / Battle");
 
     if (unit == 0 || hero == 0)
     {
@@ -769,7 +898,7 @@ static void gui_draw_detail_panel(const GameContext *game, const GuiState *state
                  (Color){55, 64, 78, 255});
     }
 
-    DrawText("Actions", 820, 492, 18, (Color){40, 48, 62, 255});
+    gui_draw_battle_summary(state, 820, 392);
 }
 
 static void gui_draw_buttons(const GameContext *game)
@@ -812,7 +941,7 @@ int main(void)
     shop_refresh(&game.player_shop, game.player.level);
     gui_init_state(&state);
 
-    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C Preparation");
+    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C Battle Summary");
     SetTargetFPS(60);
 
     while (!WindowShouldClose())
