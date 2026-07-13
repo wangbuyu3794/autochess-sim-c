@@ -345,6 +345,24 @@ PlayerResult player_equip_unit(Player *player, int unit_index, EquipmentId equip
     return PLAYER_OK;
 }
 
+PlayerResult player_add_equipment(Player *player, EquipmentId equipment_id, int count)
+{
+    if (player == 0 || count <= 0)
+    {
+        return PLAYER_ERROR_INVALID_ARGUMENT;
+    }
+
+    if (equipment_id <= EQUIPMENT_NONE ||
+        equipment_id >= AUTOCHESS_MAX_EQUIPMENT_ID ||
+        equipment_get_template(equipment_id) == 0)
+    {
+        return PLAYER_ERROR_INVALID_EQUIPMENT;
+    }
+
+    player->equipment_counts[equipment_id] += count;
+    return PLAYER_OK;
+}
+
 int player_try_merge_units(Player *player)
 {
     int merged_count = 0;

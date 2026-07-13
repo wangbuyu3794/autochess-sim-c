@@ -80,6 +80,39 @@ static void test_settle_battle_reduces_loser_health(void)
     EXPECT_EQ(100, game.player.health);
 }
 
+static void test_round_equipment_reward_rotation_is_stable(void)
+{
+    EXPECT_EQ(EQUIPMENT_BROADSWORD, game_select_round_equipment_reward(1));
+    EXPECT_EQ(EQUIPMENT_GUARDIAN_VEST, game_select_round_equipment_reward(2));
+    EXPECT_EQ(EQUIPMENT_MANA_GEM, game_select_round_equipment_reward(3));
+    EXPECT_EQ(EQUIPMENT_CRIT_GLOVES, game_select_round_equipment_reward(4));
+    EXPECT_EQ(EQUIPMENT_BROADSWORD, game_select_round_equipment_reward(5));
+}
+
+static void test_settle_battle_rewards_winner_equipment(void)
+{
+    GameContext game;
+    BattleContext context = {0};
+    BoardPosition p0 = {7, 3};
+    BoardPosition e0 = {0, 3};
+    int player_swords_before = 0;
+    int enemy_swords_before = 0;
+    game_init(&game, 1u, 2u);
+    game.current_round = 1;
+
+    player_swords_before = player_count_equipment(&game.player, EQUIPMENT_BROADSWORD);
+    enemy_swords_before = player_count_equipment(&game.enemy, EQUIPMENT_BROADSWORD);
+
+    battle_add_unit(&context, battle_create_unit_at(1, hero_get_template(1), BATTLE_SIDE_PLAYER, p0));
+    battle_add_unit(&context, battle_create_unit_at(101, hero_get_template(4), BATTLE_SIDE_ENEMY, e0));
+    context.units[1].is_alive = 0;
+
+    game_settle_battle(&game, &context, BATTLE_RESULT_PLAYER_WIN);
+
+    EXPECT_EQ(player_swords_before + 1, player_count_equipment(&game.player, EQUIPMENT_BROADSWORD));
+    EXPECT_EQ(enemy_swords_before, player_count_equipment(&game.enemy, EQUIPMENT_BROADSWORD));
+}
+
 static void test_game_run_round_advances_round(void)
 {
     GameContext game;
@@ -127,6 +160,8 @@ int main(void)
     test_seed_player_demo_units();
     test_calculate_damage_counts_alive_winners();
     test_settle_battle_reduces_loser_health();
+    test_round_equipment_reward_rotation_is_stable();
+    test_settle_battle_rewards_winner_equipment();
     test_game_run_round_advances_round();
     test_game_run_until_over_finishes();
     test_game_run_until_over_with_custom_limit();

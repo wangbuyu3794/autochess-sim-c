@@ -2,8 +2,16 @@
 
 #include "ai.h"
 #include "economy.h"
+#include "equipment.h"
 #include "hero.h"
 #include "unit.h"
+
+static const EquipmentId GAME_ROUND_REWARD_ROTATION[] = {
+    EQUIPMENT_BROADSWORD,
+    EQUIPMENT_GUARDIAN_VEST,
+    EQUIPMENT_MANA_GEM,
+    EQUIPMENT_CRIT_GLOVES,
+};
 
 static void game_log_player_summary(FILE *log_stream, const char *label, const Player *player)
 {
@@ -120,6 +128,18 @@ void game_seed_player_demo_units(GameContext *game)
     player_deploy_from_bench(&game->player, 2, player_back);
 }
 
+EquipmentId game_select_round_equipment_reward(int round)
+{
+    int count = (int)(sizeof(GAME_ROUND_REWARD_ROTATION) / sizeof(GAME_ROUND_REWARD_ROTATION[0]));
+
+    if (round <= 0)
+    {
+        round = 1;
+    }
+
+    return GAME_ROUND_REWARD_ROTATION[(round - 1) % count];
+}
+
 int game_calculate_damage(const BattleContext *battle_context, BattleSide winner)
 {
     int alive_count = 0;
@@ -145,21 +165,25 @@ int game_calculate_damage(const BattleContext *battle_context, BattleSide winner
 GameResult game_settle_battle(GameContext *game, const BattleContext *battle_context, BattleResult battle_result)
 {
     int damage = 0;
+    EquipmentId reward = EQUIPMENT_NONE;
 
     if (game == 0)
     {
         return GAME_RESULT_DRAW;
     }
 
+    reward = game_select_round_equipment_reward(game->current_round);
     if (battle_result == BATTLE_RESULT_PLAYER_WIN)
     {
         damage = game_calculate_damage(battle_context, BATTLE_SIDE_PLAYER);
         game->enemy.health -= damage;
+        player_add_equipment(&game->player, reward, 1);
     }
     else if (battle_result == BATTLE_RESULT_ENEMY_WIN)
     {
         damage = game_calculate_damage(battle_context, BATTLE_SIDE_ENEMY);
         game->player.health -= damage;
+        player_add_equipment(&game->enemy, reward, 1);
     }
 
     if (game->player.health <= 0 && game->enemy.health <= 0)
@@ -223,6 +247,13 @@ BattleResult game_run_battle_phase(GameContext *game, FILE *log_stream)
     if (log_stream != 0)
     {
         fprintf(log_stream, "回合结算：玩家生命 %d，敌方生命 %d\n", game->player.health, game->enemy.health);
+        if (battle_result == BATTLE_RESULT_PLAYER_WIN || battle_result == BATTLE_RESULT_ENEMY_WIN)
+        {
+            fprintf(log_stream,
+                    "装备奖励：%s 获得 %s\n",
+                    battle_result == BATTLE_RESULT_PLAYER_WIN ? "玩家" : "敌方",
+                    equipment_name(game_select_round_equipment_reward(game->current_round)));
+        }
     }
 
     return battle_result;

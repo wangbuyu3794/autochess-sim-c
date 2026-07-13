@@ -159,6 +159,17 @@ static void test_player_equips_unit_and_updates_inventory(void)
     EXPECT_EQ(PLAYER_ERROR_EQUIPMENT_UNAVAILABLE, player_equip_unit(&player, 0, EQUIPMENT_BROADSWORD));
 }
 
+static void test_player_adds_equipment_to_inventory(void)
+{
+    Player player;
+    player_init(&player, 1, BATTLE_SIDE_PLAYER);
+
+    EXPECT_EQ(1, player_count_equipment(&player, EQUIPMENT_CRIT_GLOVES));
+    EXPECT_EQ(PLAYER_OK, player_add_equipment(&player, EQUIPMENT_CRIT_GLOVES, 2));
+    EXPECT_EQ(3, player_count_equipment(&player, EQUIPMENT_CRIT_GLOVES));
+    EXPECT_EQ(PLAYER_ERROR_INVALID_EQUIPMENT, player_add_equipment(&player, EQUIPMENT_NONE, 1));
+}
+
 static void test_equipment_swaps_back_to_inventory(void)
 {
     Player player;
@@ -200,6 +211,7 @@ int main(void)
     test_return_unit_to_bench();
     test_deployed_units_can_create_battle_context();
     test_player_equips_unit_and_updates_inventory();
+    test_player_adds_equipment_to_inventory();
     test_equipment_swaps_back_to_inventory();
     test_equipment_applies_to_battle_unit();
 
