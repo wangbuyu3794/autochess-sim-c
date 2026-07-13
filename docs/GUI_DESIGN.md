@@ -171,6 +171,17 @@ autochess_gui.exe  图形版
 - 点击自动；
 - 点击开始战斗。
 
+当前实现状态：
+
+- 已新增 GUI 选中状态和底部消息栏；
+- 点击商店卡牌会调用 `shop_buy_slot` 购买英雄；
+- 点击备战席单位会选中该单位；
+- 选中备战席单位后，点击己方棋盘空格会调用 `player_deploy_from_bench` 部署；
+- 选中己方已上场单位后，点击己方棋盘空格会调用 `player_move_deployed_unit` 移动；
+- 选中己方已上场单位后，点击空备战席会调用 `player_return_unit_to_bench` 撤回；
+- 右侧按钮支持刷新商店、锁店/解锁、自动部署/装备和执行一场战斗；
+- 这一版暂不做拖拽、中文字体加载和战斗动画。
+
 ### V2.4 Battle Visualization
 
 - 显示战斗阶段；
