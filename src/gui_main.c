@@ -99,7 +99,8 @@ static const char *GUI_FONT_TEXT =
     "释放目标造成点伤害剩余值被击败移动到阻挡原地等待灼烧眩晕跳过行动治疗当前护盾吸收"
     "铁壁护盾破势斩连珠箭火球术秘法箭圣光守护终结斩获得"
     "技能效果羁绊职业阵营射程物理法术自我敌人低血友军固定攻击系数溅射斩杀"
-    "下一步建议调整继续再次空格关闭窗口展示打磨均版并查达底端个还和加看完为演左";
+    "下一步建议调整继续再次空格关闭窗口展示打磨均版并查达底端个还和加看完为演左"
+    "总览经济人口进度预计系统类件入";
 
 static void gui_init_resources(void)
 {
@@ -617,6 +618,67 @@ static EquipmentId gui_find_best_available_equipment(const GameContext *game, co
     }
 
     return best_equipment_id;
+}
+
+static int gui_count_player_equipment_total(const GameContext *game)
+{
+    size_t count = 0;
+    const EquipmentTemplate *templates = equipment_get_templates(&count);
+    int total = 0;
+
+    if (game == 0)
+    {
+        return 0;
+    }
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        total += player_count_equipment(&game->player, templates[i].id);
+    }
+
+    return total;
+}
+
+static int gui_count_active_trait_types(const GameContext *game)
+{
+    TraitSummary summary;
+    int active_traits = 0;
+
+    if (game == 0)
+    {
+        return 0;
+    }
+
+    trait_summary_init(&summary);
+    for (int i = 0; i < game->player.unit_count; ++i)
+    {
+        const Unit *unit = &game->player.units[i];
+        const HeroTemplate *hero = 0;
+
+        if (!unit->is_active || !unit_is_deployed(unit))
+        {
+            continue;
+        }
+
+        hero = hero_get_template(unit->template_id);
+        if (hero == 0)
+        {
+            continue;
+        }
+
+        trait_summary_add(&summary, hero->class_trait);
+        trait_summary_add(&summary, hero->origin_trait);
+    }
+
+    for (int trait = TRAIT_GUARDIAN; trait <= TRAIT_SHADOW; ++trait)
+    {
+        if (trait_summary_get_count(&summary, (TraitId)trait) > 0)
+        {
+            active_traits += 1;
+        }
+    }
+
+    return active_traits;
 }
 
 static void gui_select_bench(GuiState *state, int bench_index)
@@ -1199,23 +1261,62 @@ static void gui_draw_info_panel(const GameContext *game, const GuiState *state)
 {
     int deployed = game != 0 ? player_count_deployed_units(&game->player) : 0;
     int active = game != 0 ? player_count_active_units(&game->player) : 0;
+    int next_income = game != 0 ? economy_calculate_round_income(game->player.gold) : 0;
+    int trait_types = gui_count_active_trait_types(game);
+    int equipment_total = gui_count_player_equipment_total(game);
 
     gui_draw_panel(24, 78, 280, 500, "信息");
-    DrawText("V3.0 展示版", 42, 122, 20, (Color){40, 48, 62, 255});
-    DrawText("商店：点击购买", 42, 158, 16, (Color){85, 94, 108, 255});
-    DrawText("备战席：点击选择", 42, 184, 16, (Color){85, 94, 108, 255});
-    DrawText("棋盘：部署或移动", 42, 210, 16, (Color){85, 94, 108, 255});
-    DrawText("底部：下一步建议", 42, 236, 16, (Color){85, 94, 108, 255});
-
-    DrawText(TextFormat("拥有单位：%d", active), 42, 292, 16, (Color){55, 64, 78, 255});
-    DrawText(TextFormat("已上场：%d/%d", deployed, game != 0 ? game->player.level : 0), 42, 318, 16, (Color){55, 64, 78, 255});
+    DrawText("系统总览", 42, 122, 20, (Color){40, 48, 62, 255});
+    DrawText(TextFormat("生命：玩家 %d / 敌方 %d",
+                        game != 0 ? game->player.health : 0,
+                        game != 0 ? game->enemy.health : 0),
+             42,
+             154,
+             15,
+             (Color){55, 64, 78, 255});
+    DrawText(TextFormat("经济：金币 %d，预计收入 %d",
+                        game != 0 ? game->player.gold : 0,
+                        next_income),
+             42,
+             178,
+             15,
+             (Color){55, 64, 78, 255});
+    DrawText(TextFormat("等级：%d  经验 %d/%d",
+                        game != 0 ? game->player.level : 0,
+                        game != 0 ? game->player.experience : 0,
+                        game != 0 && game->player.level >= AUTOCHESS_MAX_LEVEL ? 0 : AUTOCHESS_EXP_PER_LEVEL),
+             42,
+             202,
+             15,
+             (Color){55, 64, 78, 255});
+    DrawText(TextFormat("商店：%s",
+                        game != 0 && game->player_shop.is_locked ? "已锁定" : "未锁定"),
+             42,
+             226,
+             15,
+             (Color){55, 64, 78, 255});
+    DrawText(TextFormat("阵容：拥有 %d，上场 %d/%d",
+                        active,
+                        deployed,
+                        game != 0 ? game->player.level : 0),
+             42,
+             250,
+             15,
+             (Color){55, 64, 78, 255});
+    DrawText(TextFormat("羁绊：%d 类  装备：%d 件", trait_types, equipment_total),
+             42,
+             274,
+             15,
+             (Color){55, 64, 78, 255});
     DrawText(TextFormat("当前选择：%s",
                         state != 0 && state->selection.type == GUI_SELECTION_BENCH ? "备战席" :
                         state != 0 && state->selection.type == GUI_SELECTION_BOARD ? "棋盘" : "无"),
              42,
-             344,
-             16,
+             308,
+             15,
              (Color){55, 64, 78, 255});
+    DrawText("操作：商店购买，棋盘部署/移动", 42, 334, 13, (Color){85, 94, 108, 255});
+    DrawText("装备：点击查看，选中单位后穿戴", 42, 354, 13, (Color){85, 94, 108, 255});
 
     gui_draw_equipment_inventory(game, state);
 }
