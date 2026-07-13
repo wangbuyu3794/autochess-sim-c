@@ -17,7 +17,8 @@ typedef enum
     PLAYER_ERROR_DEPLOY_LIMIT_REACHED,
     PLAYER_ERROR_UNIT_NOT_FOUND,
     PLAYER_ERROR_INVALID_EQUIPMENT,
-    PLAYER_ERROR_EQUIPMENT_UNAVAILABLE
+    PLAYER_ERROR_EQUIPMENT_UNAVAILABLE,
+    PLAYER_ERROR_UNIT_HAS_NO_EQUIPMENT
 } PlayerResult;
 
 typedef struct
@@ -42,6 +43,7 @@ PlayerResult player_return_unit_to_bench(Player *player, BoardPosition position)
 PlayerResult player_sell_unit(Player *player, int unit_index, int *refund);
 PlayerResult player_add_equipment(Player *player, EquipmentId equipment_id, int count);
 PlayerResult player_equip_unit(Player *player, int unit_index, EquipmentId equipment_id);
+PlayerResult player_unequip_unit(Player *player, int unit_index);
 int player_try_merge_units(Player *player);
 int player_count_equipment(const Player *player, EquipmentId equipment_id);
 int player_count_deployed_units(const Player *player);

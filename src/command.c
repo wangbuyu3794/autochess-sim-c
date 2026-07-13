@@ -174,6 +174,7 @@ void command_print_help(FILE *output)
     fprintf(output, "  buy <1-5>  购买商店中的英雄\n");
     fprintf(output, "  sell <编号>  出售单位，例如 sell 0\n");
     fprintf(output, "  equip <单位编号> <装备编号>  给单位装备，例如 equip 0 1\n");
+    fprintf(output, "  unequip <单位编号>  卸下单位装备，例如 unequip 0\n");
     fprintf(output, "  buyxp      花费 %d 金币购买 %d 经验\n", AUTOCHESS_BUY_EXP_COST, AUTOCHESS_BUY_EXP_AMOUNT);
     fprintf(output, "  lock       锁定或解锁商店，下回合保留当前商店\n");
     fprintf(output, "  refresh    花费 %d 金币刷新商店\n", AUTOCHESS_REFRESH_COST);
@@ -631,6 +632,27 @@ CommandResult command_execute_preparation(GameContext *game, const char *line, F
 
         result = player_equip_unit(&game->player, unit_index, (EquipmentId)equipment_id);
         fprintf(out, "装备结果：%s\n", player_result_name(result));
+        if (result == PLAYER_OK)
+        {
+            command_print_roster(game, out);
+            command_print_equipment_inventory(&game->player, out);
+        }
+        return result == PLAYER_OK ? COMMAND_RESULT_CONTINUE : COMMAND_RESULT_ERROR;
+    }
+
+    if (strcmp(command, "unequip") == 0)
+    {
+        int unit_index = -1;
+        PlayerResult result = PLAYER_OK;
+
+        if (!command_parse_int(argument, &unit_index))
+        {
+            fprintf(out, "卸装失败：请输入 unequip <单位编号>，例如 unequip 0。\n");
+            return COMMAND_RESULT_ERROR;
+        }
+
+        result = player_unequip_unit(&game->player, unit_index);
+        fprintf(out, "卸装结果：%s\n", player_result_name(result));
         if (result == PLAYER_OK)
         {
             command_print_roster(game, out);

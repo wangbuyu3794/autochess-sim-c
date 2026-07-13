@@ -345,6 +345,35 @@ PlayerResult player_equip_unit(Player *player, int unit_index, EquipmentId equip
     return PLAYER_OK;
 }
 
+PlayerResult player_unequip_unit(Player *player, int unit_index)
+{
+    Unit *unit = 0;
+
+    if (player == 0)
+    {
+        return PLAYER_ERROR_INVALID_ARGUMENT;
+    }
+
+    if (unit_index < 0 || unit_index >= player->unit_count || !player->units[unit_index].is_active)
+    {
+        return PLAYER_ERROR_UNIT_NOT_FOUND;
+    }
+
+    unit = &player->units[unit_index];
+    if (unit->equipment_id == EQUIPMENT_NONE)
+    {
+        return PLAYER_ERROR_UNIT_HAS_NO_EQUIPMENT;
+    }
+
+    if (unit->equipment_id > EQUIPMENT_NONE &&
+        unit->equipment_id < AUTOCHESS_MAX_EQUIPMENT_ID)
+    {
+        player->equipment_counts[unit->equipment_id] += 1;
+    }
+    unit->equipment_id = EQUIPMENT_NONE;
+    return PLAYER_OK;
+}
+
 PlayerResult player_add_equipment(Player *player, EquipmentId equipment_id, int count)
 {
     if (player == 0 || count <= 0)
@@ -573,6 +602,8 @@ const char *player_result_name(PlayerResult result)
         return "装备无效";
     case PLAYER_ERROR_EQUIPMENT_UNAVAILABLE:
         return "装备库存不足";
+    case PLAYER_ERROR_UNIT_HAS_NO_EQUIPMENT:
+        return "单位没有装备";
     default:
         return "未知结果";
     }
