@@ -97,7 +97,8 @@ static const char *GUI_FONT_TEXT =
     "适配分最高已穿洞察显示详情主要适合输出前排施法暴击生命攻击初始爆伤依赖技能型"
     "日志过程捕获条玩家敌方阵容铁卫斩锋林弓火苗影刃岩甲岚弩符法曦盾夜刺"
     "释放目标造成点伤害剩余值被击败移动到阻挡原地等待灼烧眩晕跳过行动治疗当前护盾吸收"
-    "铁壁护盾破势斩连珠箭火球术秘法箭圣光守护终结斩获得";
+    "铁壁护盾破势斩连珠箭火球术秘法箭圣光守护终结斩获得"
+    "技能效果羁绊职业阵营射程物理法术自我敌人低血友军固定攻击系数溅射斩杀";
 
 static void gui_init_resources(void)
 {
@@ -278,7 +279,7 @@ static void gui_init_state(GuiState *state)
     state->battle.reward_side = BATTLE_SIDE_PLAYER;
     gui_clear_battle_log(state);
     state->focused_equipment = EQUIPMENT_NONE;
-    gui_set_message(state, "V2.9：战斗后可查看最近战斗日志。");
+    gui_set_message(state, "V2.10：选中单位可查看技能、羁绊和装备。");
 }
 
 static const char *gui_shop_result_label(ShopResult result)
@@ -390,6 +391,36 @@ static const char *gui_equipment_role_label(EquipmentId equipment_id)
 static const char *gui_side_label(BattleSide side)
 {
     return side == BATTLE_SIDE_PLAYER ? "玩家" : "敌方";
+}
+
+static const char *gui_skill_damage_type_label(SkillDamageType damage_type)
+{
+    switch (damage_type)
+    {
+    case SKILL_DAMAGE_PHYSICAL:
+        return "物理";
+    case SKILL_DAMAGE_MAGICAL:
+        return "法术";
+    case SKILL_DAMAGE_NONE:
+    default:
+        return "无伤害";
+    }
+}
+
+static const char *gui_skill_target_label(SkillTargetType target_type)
+{
+    switch (target_type)
+    {
+    case SKILL_TARGET_SELF:
+        return "自我";
+    case SKILL_TARGET_ENEMY:
+        return "敌人";
+    case SKILL_TARGET_LOWEST_HP_ALLY:
+        return "低血友军";
+    case SKILL_TARGET_NONE:
+    default:
+        return "无目标";
+    }
 }
 
 static Color gui_side_color(BattleSide side)
@@ -1139,11 +1170,11 @@ static void gui_draw_info_panel(const GameContext *game, const GuiState *state)
     int active = game != 0 ? player_count_active_units(&game->player) : 0;
 
     gui_draw_panel(24, 78, 280, 500, "信息");
-    DrawText("V2.9 战斗日志", 42, 122, 20, (Color){40, 48, 62, 255});
+    DrawText("V2.10 单位详情", 42, 122, 20, (Color){40, 48, 62, 255});
     DrawText("商店：点击购买", 42, 158, 16, (Color){85, 94, 108, 255});
     DrawText("备战席：点击选择", 42, 184, 16, (Color){85, 94, 108, 255});
     DrawText("棋盘：部署或移动", 42, 210, 16, (Color){85, 94, 108, 255});
-    DrawText("战斗：显示最近日志", 42, 236, 16, (Color){85, 94, 108, 255});
+    DrawText("单位：技能和羁绊", 42, 236, 16, (Color){85, 94, 108, 255});
 
     DrawText(TextFormat("拥有单位：%d", active), 42, 292, 16, (Color){55, 64, 78, 255});
     DrawText(TextFormat("已上场：%d/%d", deployed, game != 0 ? game->player.level : 0), 42, 318, 16, (Color){55, 64, 78, 255});
@@ -1271,27 +1302,51 @@ static void gui_draw_detail_panel(const GameContext *game, const GuiState *state
     }
     else
     {
-        DrawText(TextFormat("英雄 %d", hero->id), 820, 124, 24, (Color){40, 48, 62, 255});
-        DrawText(TextFormat("费用 %d | %d 星 | 实例 %d", hero->cost, unit->star, unit->instance_id), 820, 164, 18, (Color){85, 94, 108, 255});
-        DrawText(TextFormat("生命 %d  攻击 %d", hero->base_hp, hero->base_attack), 820, 204, 18, (Color){55, 64, 78, 255});
-        DrawText(TextFormat("护甲 %d  魔抗 %d", hero->armor, hero->magic_resist), 820, 234, 18, (Color){55, 64, 78, 255});
-        DrawText(TextFormat("暴击 %d%% / %d%%", hero->crit_chance, hero->crit_damage), 820, 264, 18, (Color){55, 64, 78, 255});
-        DrawText(TextFormat("法力 %d / %d", hero->initial_mana, hero->max_mana), 820, 294, 18, (Color){55, 64, 78, 255});
-        DrawText(TextFormat("装备：%s", gui_equipment_label(unit->equipment_id)), 820, 334, 18, (Color){140, 100, 20, 255});
-        DrawText(TextFormat("位置：%s",
+        const SkillDefinition *skill = skill_get_definition(hero->skill_id);
+
+        DrawText(hero->name, 820, 118, 24, (Color){40, 48, 62, 255});
+        DrawText(TextFormat("费用 %d | %d 星 | 实例 %d", hero->cost, unit->star, unit->instance_id), 820, 152, 16, (Color){85, 94, 108, 255});
+        DrawText(TextFormat("羁绊：%s / %s", trait_name(hero->class_trait), trait_name(hero->origin_trait)), 820, 180, 16, (Color){55, 64, 78, 255});
+        DrawText(TextFormat("生命 %d  攻击 %d  射程 %d", hero->base_hp, hero->base_attack, hero->attack_range), 820, 208, 16, (Color){55, 64, 78, 255});
+        DrawText(TextFormat("护甲 %d  魔抗 %d  暴击 %d%%/%d%%", hero->armor, hero->magic_resist, hero->crit_chance, hero->crit_damage), 820, 236, 16, (Color){55, 64, 78, 255});
+        DrawText(TextFormat("法力 %d / %d", hero->initial_mana, hero->max_mana), 820, 264, 16, (Color){55, 64, 78, 255});
+        DrawText(TextFormat("技能：%s", skill != 0 ? skill->name : "无技能"), 820, 296, 17, (Color){40, 48, 62, 255});
+        if (skill != 0)
+        {
+            DrawText(TextFormat("效果：%s，目标 %s，固定 %d，攻击系数 %d%%",
+                                gui_skill_damage_type_label(skill->damage_type),
+                                gui_skill_target_label(skill->target_type),
+                                skill->base_damage,
+                                skill->attack_percent),
+                     820,
+                     322,
+                     14,
+                     (Color){85, 94, 108, 255});
+            DrawText(TextFormat("治疗 %d，护盾 %d，溅射 %d%%，斩杀加成 %d",
+                                skill->healing,
+                                skill->shield,
+                                skill->splash_percent,
+                                skill->execute_bonus_damage),
+                     820,
+                     344,
+                     14,
+                     (Color){85, 94, 108, 255});
+        }
+        DrawText(TextFormat("装备：%s | 位置：%s",
+                            gui_equipment_label(unit->equipment_id),
                             unit->location == UNIT_LOCATION_BENCH ? "备战席" :
                             unit->location == UNIT_LOCATION_BOARD ? "棋盘" : "无"),
                  820,
-                 364,
-                 18,
-                 (Color){55, 64, 78, 255});
+                 366,
+                 15,
+                 (Color){140, 100, 20, 255});
     }
 
     if (state != 0 && state->focused_equipment != EQUIPMENT_NONE)
     {
         gui_draw_equipment_detail(game, state, 820, 392);
     }
-    else
+    else if (unit == 0 || hero == 0)
     {
         gui_draw_battle_summary(state, 820, lower_panel_y);
         if (lower_panel_y < 300)
@@ -1341,7 +1396,7 @@ int main(void)
     shop_refresh(&game.player_shop, game.player.level);
     gui_init_state(&state);
 
-    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C Battle Log View");
+    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C Unit Detail View");
     gui_init_resources();
     SetTargetFPS(60);
 
