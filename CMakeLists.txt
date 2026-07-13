@@ -10,6 +10,8 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+option(AUTOCHESS_BUILD_GUI "Build the experimental raylib GUI client" OFF)
+
 function(autochess_enable_warnings target_name)
     if(MSVC)
         target_compile_options(${target_name} PRIVATE /W4)
@@ -48,6 +50,24 @@ add_executable(autochess
 
 target_link_libraries(autochess PRIVATE autochess_core)
 autochess_enable_warnings(autochess)
+
+if(AUTOCHESS_BUILD_GUI)
+    find_package(raylib CONFIG QUIET)
+    if(NOT raylib_FOUND)
+        find_package(raylib QUIET)
+    endif()
+
+    if(NOT raylib_FOUND)
+        message(FATAL_ERROR "AUTOCHESS_BUILD_GUI is ON, but raylib was not found. Install raylib or configure with -DAUTOCHESS_BUILD_GUI=OFF.")
+    endif()
+
+    add_executable(autochess_gui
+        src/gui_main.c
+    )
+
+    target_link_libraries(autochess_gui PRIVATE autochess_core raylib)
+    autochess_enable_warnings(autochess_gui)
+endif()
 
 add_executable(test_battle
     tests/test_battle.c

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- 进入 `V2.1 GUI Skeleton`。
+- 新增可选 CMake 开关 `AUTOCHESS_BUILD_GUI`。
+- 新增 `src/gui_main.c`，作为 raylib 图形版实验入口。
+- 图形版骨架会绘制窗口、顶部状态栏、空棋盘、信息面板、详情面板和商店预览。
+- 默认构建仍只构建终端版，避免影响现有测试和终端里程碑。
 - 进入 `V2.0 Graphical Version Design`。
 - 新增 `docs/GUI_DESIGN.md`，规划 raylib 图形版窗口布局、交互方式和阶段路线。
 - README 增加图形界面设计文档入口。

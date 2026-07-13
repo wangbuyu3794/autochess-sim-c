@@ -140,6 +140,13 @@ autochess_gui.exe  图形版
 - 能关闭窗口；
 - 不影响终端版构建。
 
+当前实现状态：
+
+- 已新增 `AUTOCHESS_BUILD_GUI` CMake 开关；
+- 已新增 `src/gui_main.c`；
+- 默认构建不启用 GUI；
+- 开启 GUI 时会绘制窗口、状态栏、空棋盘、左右面板和商店预览。
+
 ### V2.2 Board View
 
 - 根据当前 `GameContext` 绘制棋盘单位；

@@ -952,3 +952,34 @@
 - `V2.3 Preparation Interaction`：点击购买、部署、移动、撤回和开始战斗；
 - `V2.4 Battle Visualization`：显示战斗结果和关键日志；
 - `V2.5 UI Polish`：改善卡牌、颜色和提示。
+
+## V2.1 GUI Skeleton
+
+目标：建立图形版独立入口，验证 raylib 窗口、基础布局和 CMake 可选构建。
+
+包含：
+
+- `AUTOCHESS_BUILD_GUI` CMake 开关；
+- `autochess_gui` 可执行目标；
+- raylib 窗口；
+- 顶部状态栏；
+- 8x7 空棋盘；
+- 左侧信息面板；
+- 右侧详情面板；
+- 底部商店预览；
+- 不影响终端版默认构建。
+
+不包含：
+
+- 鼠标交互；
+- 单位真实绘制；
+- 备战席真实绘制；
+- 战斗动画；
+- 中文字体加载。
+
+当前实现说明：
+
+- 默认构建不开启 GUI；
+- 开启 GUI 时需要本机已安装 raylib；
+- 终端版 `autochess` 和测试目标保持原样；
+- 下一步进入 `V2.2 Board View`，把真实单位和备战席画出来。

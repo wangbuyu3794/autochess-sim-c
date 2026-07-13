@@ -205,6 +205,25 @@ quit
 .\build\Debug\autochess.exe
 ```
 
+## 图形版实验入口
+
+`V2.1` 开始提供 raylib 图形版骨架。默认不构建图形版，避免影响终端版。
+
+安装 raylib 后，可以使用：
+
+```powershell
+cmake -S . -B build-gui -G "MinGW Makefiles" -DAUTOCHESS_BUILD_GUI=ON
+cmake --build build-gui
+.\build-gui\autochess_gui.exe
+```
+
+如果没有安装 raylib，继续使用普通构建即可：
+
+```powershell
+cmake -S . -B build-mingw -G "MinGW Makefiles"
+cmake --build build-mingw
+```
+
 ## 项目边界
 
 当前终端版暂不做：

@@ -775,3 +775,5 @@ autochess_gui
 ```text
 docs/GUI_DESIGN.md
 ```
+
+`V2.1` 已建立可选图形版骨架。该目标只在 `AUTOCHESS_BUILD_GUI=ON` 时构建，避免没有 raylib 的环境影响终端版。
