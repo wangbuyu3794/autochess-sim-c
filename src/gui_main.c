@@ -99,7 +99,7 @@ static const char *GUI_FONT_TEXT =
     "释放目标造成点伤害剩余值被击败移动到阻挡原地等待灼烧眩晕跳过行动治疗当前护盾吸收"
     "铁壁护盾破势斩连珠箭火球术秘法箭圣光守护终结斩获得"
     "技能效果羁绊职业阵营射程物理法术自我敌人低血友军固定攻击系数溅射斩杀"
-    "下一步建议调整继续再次空格关闭窗口";
+    "下一步建议调整继续再次空格关闭窗口展示打磨";
 
 static void gui_init_resources(void)
 {
@@ -280,7 +280,7 @@ static void gui_init_state(GuiState *state)
     state->battle.reward_side = BATTLE_SIDE_PLAYER;
     gui_clear_battle_log(state);
     state->focused_equipment = EQUIPMENT_NONE;
-    gui_set_message(state, "V2.11：底部会提示当前操作结果和下一步建议。");
+    gui_set_message(state, "V2.13：展示打磨完成，提示更紧凑。");
 }
 
 static const char *gui_shop_result_label(ShopResult result)
@@ -428,30 +428,30 @@ static const char *gui_next_action_hint(const GameContext *game, const GuiState 
 {
     if (game != 0 && game->result != GAME_RESULT_ONGOING)
     {
-        return "下一步：游戏已结束，可关闭窗口。";
+        return "已结束：可关闭窗口。";
     }
 
     if (state != 0 && state->selection.type == GUI_SELECTION_BENCH)
     {
-        return "下一步：点击棋盘空格部署，或点击装备穿戴。";
+        return "下一步：部署或穿戴装备。";
     }
 
     if (state != 0 && state->selection.type == GUI_SELECTION_BOARD)
     {
-        return "下一步：点击棋盘空格移动，或点击空备战席撤回。";
+        return "下一步：移动或撤回。";
     }
 
     if (state != 0 && state->focused_equipment != EQUIPMENT_NONE)
     {
-        return "下一步：选择单位后再次点击装备可穿戴。";
+        return "下一步：选单位后穿戴。";
     }
 
     if (state != 0 && state->battle.has_battle)
     {
-        return "下一步：调整阵容、刷新商店，或继续战斗。";
+        return "下一步：调整阵容或继续战斗。";
     }
 
-    return "下一步：购买英雄，选择备战席单位并部署。";
+    return "下一步：购买英雄并部署。";
 }
 
 static Color gui_side_color(BattleSide side)
@@ -1201,7 +1201,7 @@ static void gui_draw_info_panel(const GameContext *game, const GuiState *state)
     int active = game != 0 ? player_count_active_units(&game->player) : 0;
 
     gui_draw_panel(24, 78, 280, 500, "信息");
-    DrawText("V2.11 操作提示", 42, 122, 20, (Color){40, 48, 62, 255});
+    DrawText("V2.13 展示打磨", 42, 122, 20, (Color){40, 48, 62, 255});
     DrawText("商店：点击购买", 42, 158, 16, (Color){85, 94, 108, 255});
     DrawText("备战席：点击选择", 42, 184, 16, (Color){85, 94, 108, 255});
     DrawText("棋盘：部署或移动", 42, 210, 16, (Color){85, 94, 108, 255});
@@ -1413,7 +1413,7 @@ static void gui_draw_message_bar(const GameContext *game, const GuiState *state)
 {
     DrawRectangle(0, 690, GUI_SCREEN_WIDTH, 30, (Color){31, 36, 48, 255});
     DrawText(state != 0 ? state->message : "", 24, 697, 14, RAYWHITE);
-    DrawText(gui_next_action_hint(game, state), 610, 697, 13, LIGHTGRAY);
+    DrawText(gui_next_action_hint(game, state), 780, 697, 13, LIGHTGRAY);
 }
 
 int main(void)
@@ -1427,7 +1427,7 @@ int main(void)
     shop_refresh(&game.player_shop, game.player.level);
     gui_init_state(&state);
 
-    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C Action Guidance");
+    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C Showcase Polish");
     gui_init_resources();
     SetTargetFPS(60);
 
