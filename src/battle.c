@@ -488,9 +488,10 @@ BattleResult battle_run(BattleContext *context, FILE *log_stream)
                 continue;
             }
 
+            int is_critical = battle_is_critical_hit(attacker, target, context->current_round);
             int attack_damage = battle_calculate_attack_damage(attacker, target, context->current_round);
             battle_apply_damage(target, attack_damage);
-            logger_attack(log_stream, attacker->name, target->name, attack_damage, target->current_hp, target->max_hp);
+            logger_attack_detail(log_stream, attacker->name, target->name, attack_damage, target->current_hp, target->max_hp, is_critical);
             battle_gain_mana(attacker, AUTOCHESS_ATTACK_MANA_GAIN);
 
             if (target->is_alive == 0)

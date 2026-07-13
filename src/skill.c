@@ -122,8 +122,10 @@ int skill_cast(BattleContext *context, int caster_index, int target_index, FILE 
 
     if (definition->target_type == SKILL_TARGET_SELF)
     {
+        int healing = skill_calculate_healing(definition);
         logger_skill(log_stream, caster->name, definition->name, caster->name);
-        heal_self(caster, skill_calculate_healing(definition));
+        heal_self(caster, healing);
+        logger_skill_heal(log_stream, definition->name, caster->name, healing, caster->current_hp, caster->max_hp);
         return 1;
     }
 
@@ -133,7 +135,9 @@ int skill_cast(BattleContext *context, int caster_index, int target_index, FILE 
     }
 
     logger_skill(log_stream, caster->name, definition->name, target->name);
-    battle_apply_damage(target, skill_calculate_damage(definition, caster, target));
+    int damage = skill_calculate_damage(definition, caster, target);
+    battle_apply_damage(target, damage);
+    logger_skill_damage(log_stream, definition->name, target->name, damage, target->current_hp, target->max_hp);
 
     if (!target->is_alive)
     {

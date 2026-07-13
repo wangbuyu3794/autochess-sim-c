@@ -26,12 +26,45 @@ void logger_round_start(FILE *stream, int round)
 
 void logger_attack(FILE *stream, const char *attacker, const char *target, int damage, int current_hp, int max_hp)
 {
+    logger_attack_detail(stream, attacker, target, damage, current_hp, max_hp, 0);
+}
+
+void logger_attack_detail(FILE *stream, const char *attacker, const char *target, int damage, int current_hp, int max_hp, int is_critical)
+{
     if (stream != NULL)
     {
-        fprintf(stream, "%s 攻击 %s，造成 %d 点伤害，%s 剩余生命值 %d/%d\n",
+        fprintf(stream, "%s 攻击 %s%s，造成 %d 点伤害，%s 剩余生命值 %d/%d\n",
                 attacker,
                 target,
+                is_critical ? "（暴击）" : "",
                 damage,
+                target,
+                current_hp,
+                max_hp);
+    }
+}
+
+void logger_skill_damage(FILE *stream, const char *skill_name_text, const char *target, int damage, int current_hp, int max_hp)
+{
+    if (stream != NULL)
+    {
+        fprintf(stream, "%s 造成 %d 点伤害，%s 剩余生命值 %d/%d\n",
+                skill_name_text,
+                damage,
+                target,
+                current_hp,
+                max_hp);
+    }
+}
+
+void logger_skill_heal(FILE *stream, const char *skill_name_text, const char *target, int healing, int current_hp, int max_hp)
+{
+    if (stream != NULL)
+    {
+        fprintf(stream, "%s 治疗 %s %d 点生命，%s 当前生命值 %d/%d\n",
+                skill_name_text,
+                target,
+                healing,
                 target,
                 current_hp,
                 max_hp);
