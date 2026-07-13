@@ -173,70 +173,135 @@ void ai_deploy_best_units(Player *player)
     }
 }
 
-static int ai_find_best_deployed_unit_without_equipment(const Player *player)
+int ai_score_equipment_for_unit(EquipmentId equipment_id, const Unit *unit)
 {
-    int best_index = -1;
-    int best_score = -1;
+    const HeroTemplate *hero = 0;
+    int score = 0;
 
-    if (player == 0)
+    if (unit == 0 || !unit->is_active)
     {
         return -1;
     }
 
-    for (int i = 0; i < player->unit_count; ++i)
+    hero = hero_get_template(unit->template_id);
+    if (hero == 0 || equipment_get_template(equipment_id) == 0)
     {
-        const Unit *unit = &player->units[i];
-        int score = -1;
+        return -1;
+    }
 
-        if (!unit_is_deployed(unit) || unit->equipment_id != EQUIPMENT_NONE)
+    score = ai_score_unit(unit) / 10;
+    if (equipment_id == EQUIPMENT_BROADSWORD)
+    {
+        score += hero->base_attack * 4 + hero->attack_range * 10;
+        if (hero->class_trait == TRAIT_BLADEMASTER || hero->class_trait == TRAIT_RANGER)
+        {
+            score += 80;
+        }
+    }
+    else if (equipment_id == EQUIPMENT_GUARDIAN_VEST)
+    {
+        score += hero->base_hp + hero->armor * 6;
+        if (hero->class_trait == TRAIT_GUARDIAN)
+        {
+            score += 100;
+        }
+    }
+    else if (equipment_id == EQUIPMENT_MANA_GEM)
+    {
+        score += hero->max_mana > 0 ? hero->max_mana - hero->initial_mana : 0;
+        if (hero->skill_id != SKILL_NONE)
+        {
+            score += 80;
+        }
+        if (hero->class_trait == TRAIT_MAGE)
+        {
+            score += 100;
+        }
+    }
+    else if (equipment_id == EQUIPMENT_CRIT_GLOVES)
+    {
+        score += hero->base_attack * 3 + hero->crit_chance * 4 + hero->crit_damage;
+        if (hero->class_trait == TRAIT_BLADEMASTER || hero->origin_trait == TRAIT_SHADOW)
+        {
+            score += 80;
+        }
+    }
+
+    return score;
+}
+
+static int ai_find_best_equipment_assignment(const Player *player, EquipmentId *equipment_id, int *unit_index)
+{
+    int best_score = -1;
+    size_t equipment_count = 0;
+    const EquipmentTemplate *equipment_templates = equipment_get_templates(&equipment_count);
+
+    if (player == 0 || equipment_id == 0 || unit_index == 0)
+    {
+        return 0;
+    }
+
+    *equipment_id = EQUIPMENT_NONE;
+    *unit_index = -1;
+
+    for (size_t equipment_index = 0; equipment_index < equipment_count; ++equipment_index)
+    {
+        EquipmentId candidate_equipment = equipment_templates[equipment_index].id;
+
+        if (player_count_equipment(player, candidate_equipment) <= 0)
         {
             continue;
         }
 
-        score = ai_score_unit(unit);
-        if (score > best_score)
+        for (int i = 0; i < player->unit_count; ++i)
         {
-            best_score = score;
-            best_index = i;
+            const Unit *unit = &player->units[i];
+            int score = -1;
+
+            if (!unit_is_deployed(unit) || unit->equipment_id != EQUIPMENT_NONE)
+            {
+                continue;
+            }
+
+            score = ai_score_equipment_for_unit(candidate_equipment, unit);
+            if (score > best_score)
+            {
+                best_score = score;
+                *equipment_id = candidate_equipment;
+                *unit_index = i;
+            }
         }
     }
 
-    return best_index;
+    return *equipment_id != EQUIPMENT_NONE && *unit_index >= 0;
 }
 
 int ai_equip_best_units(Player *player)
 {
     int equipped_count = 0;
-    size_t equipment_count = 0;
-    const EquipmentTemplate *equipment_templates = equipment_get_templates(&equipment_count);
 
     if (player == 0)
     {
         return 0;
     }
 
-    for (size_t i = 0; i < equipment_count; ++i)
+    while (1)
     {
-        EquipmentId equipment_id = equipment_templates[i].id;
+        EquipmentId equipment_id = EQUIPMENT_NONE;
+        int unit_index = -1;
 
-        while (player_count_equipment(player, equipment_id) > 0)
+        if (!ai_find_best_equipment_assignment(player, &equipment_id, &unit_index))
         {
-            int unit_index = ai_find_best_deployed_unit_without_equipment(player);
-            if (unit_index < 0)
-            {
-                return equipped_count;
-            }
-
-            if (player_equip_unit(player, unit_index, equipment_id) != PLAYER_OK)
-            {
-                break;
-            }
-
-            equipped_count += 1;
+            return equipped_count;
         }
-    }
 
-    return equipped_count;
+        if (player_equip_unit(player, unit_index, equipment_id) != PLAYER_OK)
+        {
+            return equipped_count;
+        }
+
+        equipped_count += 1;
+    }
 }
 
 void ai_run_preparation(Player *player, Shop *shop, int *next_instance_id)

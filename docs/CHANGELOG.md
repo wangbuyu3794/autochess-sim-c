@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- 进入 `V1.20 Equipment Fit AI`。
+- 项目版本号升级为 `1.20.0`。
+- 新增 `ai_score_equipment_for_unit`，根据装备类型和单位特点计算适配分。
+- 自动装备改为在库存装备和未装备上场单位之间选择最高适配组合。
+- 攻击、防御、法力和暴击装备会偏向不同定位的英雄。
+- AI 测试覆盖装备适配评分。
 - 进入 `V1.19 Equipment Management`。
 - 项目版本号升级为 `1.19.0`。
 - 玩家模块新增 `player_unequip_unit`。

@@ -97,18 +97,48 @@ static void test_ai_respects_deploy_limit(void)
     EXPECT_EQ(2, player_count_deployed_units(&enemy));
 }
 
+static void test_ai_scores_equipment_fit_by_unit_role(void)
+{
+    Unit guard = unit_create(1, 9);
+    Unit mage = unit_create(2, 8);
+    Unit assassin = unit_create(3, 10);
+    Unit archer = unit_create(4, 3);
+
+    EXPECT_TRUE(ai_score_equipment_for_unit(EQUIPMENT_MANA_GEM, &mage) >
+                ai_score_equipment_for_unit(EQUIPMENT_MANA_GEM, &guard));
+    EXPECT_TRUE(ai_score_equipment_for_unit(EQUIPMENT_GUARDIAN_VEST, &guard) >
+                ai_score_equipment_for_unit(EQUIPMENT_GUARDIAN_VEST, &archer));
+    EXPECT_TRUE(ai_score_equipment_for_unit(EQUIPMENT_CRIT_GLOVES, &assassin) >
+                ai_score_equipment_for_unit(EQUIPMENT_CRIT_GLOVES, &guard));
+}
+
 static void test_ai_equips_best_deployed_units(void)
 {
     Player enemy;
+    int equipment_before = 0;
+    int equipment_after = 0;
     player_init(&enemy, 2, BATTLE_SIDE_ENEMY);
 
     player_add_unit_to_bench(&enemy, unit_create(101, 1));
     player_add_unit_to_bench(&enemy, unit_create(102, 6));
     ai_deploy_best_units(&enemy);
 
+    equipment_before =
+        player_count_equipment(&enemy, EQUIPMENT_BROADSWORD) +
+        player_count_equipment(&enemy, EQUIPMENT_GUARDIAN_VEST) +
+        player_count_equipment(&enemy, EQUIPMENT_MANA_GEM) +
+        player_count_equipment(&enemy, EQUIPMENT_CRIT_GLOVES);
+
     EXPECT_TRUE(ai_equip_best_units(&enemy) > 0);
+    equipment_after =
+        player_count_equipment(&enemy, EQUIPMENT_BROADSWORD) +
+        player_count_equipment(&enemy, EQUIPMENT_GUARDIAN_VEST) +
+        player_count_equipment(&enemy, EQUIPMENT_MANA_GEM) +
+        player_count_equipment(&enemy, EQUIPMENT_CRIT_GLOVES);
+
+    EXPECT_TRUE(enemy.units[0].equipment_id != EQUIPMENT_NONE);
     EXPECT_TRUE(enemy.units[1].equipment_id != EQUIPMENT_NONE);
-    EXPECT_EQ(0, player_count_equipment(&enemy, EQUIPMENT_BROADSWORD));
+    EXPECT_TRUE(equipment_after < equipment_before);
 }
 
 static void test_ai_run_preparation_buys_and_deploys(void)
@@ -133,6 +163,7 @@ int main(void)
     test_buy_best_affordable_unit_uses_shop_and_bench();
     test_ai_deploys_enemy_units_to_enemy_area();
     test_ai_respects_deploy_limit();
+    test_ai_scores_equipment_fit_by_unit_role();
     test_ai_equips_best_deployed_units();
     test_ai_run_preparation_buys_and_deploys();
 
