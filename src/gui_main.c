@@ -82,7 +82,7 @@ static const char *GUI_FONT_TEXT =
     "点击关闭窗口退出安排阵容后开始下一场无战斗记录第场结果获胜平局进行中"
     "大剑守护背心法力宝石暴击手套无"
     "：。，或右侧按钮操作已花费刷新解游戏结束模板缺失暂时只能预览推荐拥有当前图例编号费用"
-    "区域信息整理生成尚未己方请先上的获得风";
+    "区域信息整理生成尚未己方请先上的获得风库存穿戴替换不足可点击给选中单位";
 
 static void gui_init_resources(void)
 {
@@ -193,7 +193,7 @@ static void gui_init_state(GuiState *state)
     state->battle.enemy_deployed = 0;
     state->battle.reward_equipment = EQUIPMENT_NONE;
     state->battle.reward_side = BATTLE_SIDE_PLAYER;
-    gui_set_message(state, "V2.5：点击商店、备战席、棋盘或右侧按钮进行操作。");
+    gui_set_message(state, "V2.6：选择单位后点击左侧装备，即可穿戴或替换。");
 }
 
 static const char *gui_shop_result_label(ShopResult result)
@@ -238,6 +238,12 @@ static const char *gui_player_result_label(PlayerResult result)
         return "上场人数已达上限";
     case PLAYER_ERROR_UNIT_NOT_FOUND:
         return "没有找到单位";
+    case PLAYER_ERROR_INVALID_EQUIPMENT:
+        return "装备无效";
+    case PLAYER_ERROR_EQUIPMENT_UNAVAILABLE:
+        return "装备库存不足";
+    case PLAYER_ERROR_UNIT_HAS_NO_EQUIPMENT:
+        return "单位没有装备";
     case PLAYER_ERROR_INVALID_ARGUMENT:
     default:
         return "操作无效";
@@ -312,6 +318,11 @@ static Rectangle gui_shop_rect(int slot_index)
                          GUI_CARD_HEIGHT);
 }
 
+static Rectangle gui_equipment_rect(int equipment_index)
+{
+    return gui_make_rect(42, 430 + equipment_index * 34, 226, 28);
+}
+
 static int gui_hit_board_cell(Vector2 mouse, BoardPosition *position)
 {
     Rectangle board = gui_make_rect(GUI_BOARD_X,
@@ -353,6 +364,22 @@ static int gui_hit_shop(Vector2 mouse)
     }
 
     return -1;
+}
+
+static EquipmentId gui_hit_equipment(Vector2 mouse)
+{
+    size_t count = 0;
+    const EquipmentTemplate *templates = equipment_get_templates(&count);
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        if (CheckCollisionPointRec(mouse, gui_equipment_rect((int)i)))
+        {
+            return templates[i].id;
+        }
+    }
+
+    return EQUIPMENT_NONE;
 }
 
 static int gui_get_selected_unit_index(const GameContext *game, const GuiState *state)
@@ -532,6 +559,33 @@ static void gui_handle_board_click(GameContext *game, GuiState *state, BoardPosi
     gui_set_message(state, "请先选择备战席或棋盘上的己方单位。");
 }
 
+static void gui_handle_equipment_click(GameContext *game, GuiState *state, EquipmentId equipment_id)
+{
+    int unit_index = -1;
+    PlayerResult result = PLAYER_OK;
+
+    if (game == 0 || state == 0 || equipment_id == EQUIPMENT_NONE)
+    {
+        return;
+    }
+
+    unit_index = gui_get_selected_unit_index(game, state);
+    if (unit_index < 0)
+    {
+        gui_set_message(state, "请先选择一个玩家单位，再点击装备。");
+        return;
+    }
+
+    result = player_equip_unit(&game->player, unit_index, equipment_id);
+    if (result == PLAYER_OK)
+    {
+        snprintf(state->message, sizeof(state->message), "已给选中单位穿戴%s。", gui_equipment_label(equipment_id));
+        return;
+    }
+
+    snprintf(state->message, sizeof(state->message), "穿戴失败：%s。", gui_player_result_label(result));
+}
+
 static void gui_prepare_next_round(GameContext *game)
 {
     if (game == 0 || game->result != GAME_RESULT_ONGOING)
@@ -665,10 +719,18 @@ static void gui_handle_click(GameContext *game, GuiState *state)
     int button_index = gui_hit_button(mouse);
     int shop_index = -1;
     int bench_index = -1;
+    EquipmentId equipment_id = EQUIPMENT_NONE;
 
     if (button_index >= 0)
     {
         gui_handle_button_click(game, state, button_index);
+        return;
+    }
+
+    equipment_id = gui_hit_equipment(mouse);
+    if (equipment_id != EQUIPMENT_NONE)
+    {
+        gui_handle_equipment_click(game, state, equipment_id);
         return;
     }
 
@@ -878,17 +940,40 @@ static void gui_draw_bench_preview(const GameContext *game, const GuiState *stat
     }
 }
 
+static void gui_draw_equipment_inventory(const GameContext *game)
+{
+    size_t count = 0;
+    const EquipmentTemplate *templates = equipment_get_templates(&count);
+
+    DrawText("装备库存", 42, 398, 16, (Color){55, 64, 78, 255});
+    DrawText("点击装备给选中单位穿戴", 42, 416, 13, (Color){85, 94, 108, 255});
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        EquipmentId equipment_id = templates[i].id;
+        int owned = game != 0 ? player_count_equipment(&game->player, equipment_id) : 0;
+        Rectangle rect = gui_equipment_rect((int)i);
+        Color fill = owned > 0 ? (Color){255, 255, 255, 255} : (Color){232, 236, 242, 255};
+        Color line = owned > 0 ? (Color){150, 160, 174, 255} : (Color){195, 202, 212, 255};
+        Color text = owned > 0 ? (Color){45, 54, 70, 255} : (Color){130, 138, 150, 255};
+
+        DrawRectangleRec(rect, fill);
+        DrawRectangleLinesEx(rect, 1.0f, line);
+        DrawText(TextFormat("%s  x%d", gui_equipment_label(equipment_id), owned), (int)rect.x + 8, (int)rect.y + 7, 13, text);
+    }
+}
+
 static void gui_draw_info_panel(const GameContext *game, const GuiState *state)
 {
     int deployed = game != 0 ? player_count_deployed_units(&game->player) : 0;
     int active = game != 0 ? player_count_active_units(&game->player) : 0;
 
     gui_draw_panel(24, 78, 280, 500, "信息");
-    DrawText("V2.5 界面整理", 42, 122, 20, (Color){40, 48, 62, 255});
+    DrawText("V2.6 装备交互", 42, 122, 20, (Color){40, 48, 62, 255});
     DrawText("商店：点击购买", 42, 158, 16, (Color){85, 94, 108, 255});
     DrawText("备战席：点击选择", 42, 184, 16, (Color){85, 94, 108, 255});
     DrawText("棋盘：部署或移动", 42, 210, 16, (Color){85, 94, 108, 255});
-    DrawText("战斗：生成摘要", 42, 236, 16, (Color){85, 94, 108, 255});
+    DrawText("装备：选择单位后点击", 42, 236, 16, (Color){85, 94, 108, 255});
 
     DrawText(TextFormat("拥有单位：%d", active), 42, 292, 16, (Color){55, 64, 78, 255});
     DrawText(TextFormat("已上场：%d/%d", deployed, game != 0 ? game->player.level : 0), 42, 318, 16, (Color){55, 64, 78, 255});
@@ -900,8 +985,7 @@ static void gui_draw_info_panel(const GameContext *game, const GuiState *state)
              16,
              (Color){55, 64, 78, 255});
 
-    DrawText("图例", 42, 398, 16, (Color){55, 64, 78, 255});
-    DrawText("英雄编号 / 星级 / 装备", 42, 424, 16, (Color){85, 94, 108, 255});
+    gui_draw_equipment_inventory(game);
 }
 
 static void gui_draw_battle_summary(const GuiState *state, int x, int y)
@@ -1010,7 +1094,7 @@ int main(void)
     shop_refresh(&game.player_shop, game.player.level);
     gui_init_state(&state);
 
-    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C UI Polish");
+    InitWindow(GUI_SCREEN_WIDTH, GUI_SCREEN_HEIGHT, "AutoChess-C Equipment Interaction");
     gui_init_resources();
     SetTargetFPS(60);
 
