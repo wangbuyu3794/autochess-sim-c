@@ -1,5 +1,7 @@
 # 自走棋模拟
 
+[![CI](https://github.com/wangbuyu3794/autochess-sim-c/actions/workflows/ci.yml/badge.svg)](https://github.com/wangbuyu3794/autochess-sim-c/actions/workflows/ci.yml)
+
 `AutoChess-C` 是一个以学习 C 语言工程能力为核心目标的单机终端自走棋模拟器项目。
 
 这个项目不会一开始追求复杂画面或完整复刻商业游戏，而是先把自动战棋的核心规则拆成清晰、可测试、可扩展的 C 语言模块：英雄、单位、玩家、棋盘、商店、经济、羁绊、战斗、AI、存档和命令系统。
